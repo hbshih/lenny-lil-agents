@@ -476,7 +476,7 @@ class WalkerCharacter {
         })
     }
 
-    private func showBubble(text: String, isCompletion: Bool) {
+    func showBubble(text: String, isCompletion: Bool) {
         let t = resolvedTheme
         if thinkingBubbleWindow == nil {
             createThinkingBubble()
