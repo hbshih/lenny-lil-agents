@@ -14,11 +14,22 @@ struct LilAgentsApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var controller: LilAgentsController?
     var statusItem: NSStatusItem?
+    var expertStatusItems: [NSStatusItem] = []
+    var visibleExperts: [ResponderExpert] = []
+    var focusedExpert: ResponderExpert?
+    var char1Item: NSMenuItem?
+    var backToLennyItem: NSMenuItem?
     let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         controller = LilAgentsController()
+        controller?.onExpertsChanged = { [weak self] experts in
+            self?.updateExpertStatusItems(experts)
+        }
+        controller?.onFocusedExpertChanged = { [weak self] expert in
+            self?.updateFocusedExpert(expert)
+        }
         controller?.start()
         setupMenuBar()
     }
@@ -37,13 +48,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
 
-        let char1Item = NSMenuItem(title: "Bruce", action: #selector(toggleChar1), keyEquivalent: "1")
+        let char1Item = NSMenuItem(title: "Lenny", action: #selector(toggleChar1), keyEquivalent: "1")
         char1Item.state = .on
         menu.addItem(char1Item)
+        self.char1Item = char1Item
 
-        let char2Item = NSMenuItem(title: "Jazz", action: #selector(toggleChar2), keyEquivalent: "2")
-        char2Item.state = .on
-        menu.addItem(char2Item)
+        let backToLennyItem = NSMenuItem(title: "Back to Lenny", action: #selector(backToLenny), keyEquivalent: "")
+        backToLennyItem.isEnabled = false
+        menu.addItem(backToLennyItem)
+        self.backToLennyItem = backToLennyItem
 
         menu.addItem(NSMenuItem.separator())
 
@@ -146,7 +159,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let char = chars[0]
         if char.window.isVisible {
             char.window.orderOut(nil)
-            char.queuePlayer.pause()
             sender.state = .off
         } else {
             char.window.orderFrontRegardless()
@@ -154,17 +166,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc func toggleChar2(_ sender: NSMenuItem) {
-        guard let chars = controller?.characters, chars.count > 1 else { return }
-        let char = chars[1]
-        if char.window.isVisible {
-            char.window.orderOut(nil)
-            char.queuePlayer.pause()
-            sender.state = .off
-        } else {
-            char.window.orderFrontRegardless()
-            sender.state = .on
-        }
+    @objc func backToLenny() {
+        controller?.focus(on: nil)
     }
 
     @objc func toggleDebug(_ sender: NSMenuItem) {
@@ -185,6 +188,76 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func quitApp() {
         NSApp.terminate(nil)
+    }
+
+    private func updateExpertStatusItems(_ experts: [ResponderExpert]) {
+        expertStatusItems.forEach { NSStatusBar.system.removeStatusItem($0) }
+        expertStatusItems.removeAll()
+        visibleExperts = Array(experts.prefix(3))
+
+        for (index, expert) in visibleExperts.enumerated() {
+            let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            if let button = item.button {
+                button.image = statusImage(for: expert.avatarPath)
+                button.imagePosition = .imageLeading
+                button.title = initials(for: expert.name)
+                button.imageScaling = .scaleProportionallyUpOrDown
+                button.toolTip = "Follow up with \(expert.name)"
+                button.tag = index
+                button.target = self
+                button.action = #selector(selectExpert(_:))
+            }
+            expertStatusItems.append(item)
+        }
+    }
+
+    private func statusImage(for path: String) -> NSImage? {
+        let resolvedPath = pngAvatarPath(for: path) ?? path
+        guard let image = NSImage(contentsOfFile: resolvedPath) else { return nil }
+        image.size = NSSize(width: 18, height: 18)
+        image.isTemplate = false
+        return image
+    }
+
+    private func pngAvatarPath(for path: String) -> String? {
+        guard path.lowercased().hasSuffix(".webp"),
+              let image = NSImage(contentsOfFile: path),
+              let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            return nil
+        }
+
+        let cacheDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("lil-agents-avatar-cache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+
+        let fileName = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent + ".png"
+        let pngURL = cacheDir.appendingPathComponent(fileName)
+
+        if !FileManager.default.fileExists(atPath: pngURL.path) {
+            try? pngData.write(to: pngURL)
+        }
+
+        return pngURL.path
+    }
+
+    private func initials(for name: String) -> String {
+        let parts = name.split(separator: " ").prefix(2)
+        return parts.compactMap { $0.first.map(String.init) }.joined()
+    }
+
+    @objc func selectExpert(_ sender: NSStatusBarButton) {
+        guard sender.tag >= 0, sender.tag < visibleExperts.count else { return }
+        controller?.openDialog(for: visibleExperts[sender.tag])
+    }
+
+    private func updateFocusedExpert(_ expert: ResponderExpert?) {
+        focusedExpert = expert
+        char1Item?.title = expert?.name ?? "Lenny"
+        backToLennyItem?.isEnabled = expert != nil
+        if let button = statusItem?.button {
+            button.toolTip = expert == nil ? "Lenny" : "Current guide: \(expert!.name)"
+        }
     }
 }
 

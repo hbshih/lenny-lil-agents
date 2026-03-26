@@ -6,39 +6,26 @@ class LilAgentsController {
     var debugWindow: NSWindow?
     var pinnedScreenIndex: Int = -1
     private static let onboardingKey = "hasCompletedOnboarding"
+    private let maxVisibleGuestAvatars = 3
+    private var currentExperts: [ResponderExpert] = []
+    var onExpertsChanged: (([ResponderExpert]) -> Void)?
+    var onFocusedExpertChanged: ((ResponderExpert?) -> Void)?
+    private(set) var focusedExpert: ResponderExpert?
 
     func start() {
-        let char1 = WalkerCharacter(videoName: "walk-bruce-01")
-        char1.accelStart = 3.0
-        char1.fullSpeedStart = 3.75
-        char1.decelStart = 8.0
-        char1.walkStop = 8.5
-        char1.walkAmountRange = 0.4...0.65
+        let lenny = WalkerCharacter(videoName: "lenny")
+        lenny.accelStart = 2.5
+        lenny.fullSpeedStart = 3.2
+        lenny.decelStart = 7.8
+        lenny.walkStop = 8.4
+        lenny.walkAmountRange = 0.35...0.6
+        lenny.yOffset = -4
+        lenny.characterColor = NSColor(red: 0.96, green: 0.63, blue: 0.23, alpha: 1.0)
+        lenny.positionProgress = 0.5
+        lenny.pauseEndTime = CACurrentMediaTime() + Double.random(in: 0.5...2.0)
+        lenny.setup()
 
-        let char2 = WalkerCharacter(videoName: "walk-jazz-01")
-        char2.accelStart = 3.9
-        char2.fullSpeedStart = 4.5
-        char2.decelStart = 8.0
-        char2.walkStop = 8.75
-        char2.walkAmountRange = 0.35...0.6
-        char1.yOffset = -3
-        char2.yOffset = -7
-        char1.characterColor = NSColor(red: 0.4, green: 0.72, blue: 0.55, alpha: 1.0)
-        char2.characterColor = NSColor(red: 1.0, green: 0.4, blue: 0.0, alpha: 1.0)
-
-        char1.flipXOffset = 0
-        char2.flipXOffset = -9
-
-        char1.positionProgress = 0.3
-        char2.positionProgress = 0.7
-
-        char1.pauseEndTime = CACurrentMediaTime() + Double.random(in: 0.5...2.0)
-        char2.pauseEndTime = CACurrentMediaTime() + Double.random(in: 8.0...14.0)
-
-        char1.setup()
-        char2.setup()
-
-        characters = [char1, char2]
+        characters = [lenny]
         characters.forEach { $0.controller = self }
 
         setupDebugLine()
@@ -65,6 +52,95 @@ class LilAgentsController {
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
         characters.forEach { $0.isOnboarding = false }
+    }
+
+    func updateExperts(_ experts: [ResponderExpert]) {
+        currentExperts = experts
+        onExpertsChanged?(experts)
+        syncGuestCharacters()
+    }
+
+    func focus(on expert: ResponderExpert?) {
+        focusedExpert = expert
+        onFocusedExpertChanged?(expert)
+        guard let character = characters.first else { return }
+        character.focus(on: expert)
+        syncGuestCharacters()
+    }
+
+    func openDialog(for expert: ResponderExpert?) {
+        guard let expert else {
+            focus(on: nil)
+            return
+        }
+
+        if let character = characters.first(where: { candidate in
+            if candidate === characters.first {
+                return candidate.focusedExpert == expert
+            }
+            return candidate.isCompanionAvatar && candidate.representedExpert == expert
+        }) {
+            character.focusedExpert = expert
+            character.claudeSession?.focusedExpert = expert
+            character.openPopover()
+            return
+        }
+
+        focus(on: expert)
+    }
+
+    private func syncGuestCharacters() {
+        guard let mainCharacter = characters.first else { return }
+
+        let visibleGuestNames = Set(currentExperts.prefix(maxVisibleGuestAvatars).map(\.name))
+        let companionExperts = currentExperts
+            .filter { visibleGuestNames.contains($0.name) }
+            .filter { expert in
+                guard let focusedExpert else { return true }
+                return expert != focusedExpert
+            }
+            .prefix(max(0, maxVisibleGuestAvatars - (focusedExpert == nil ? 0 : 1)))
+
+        while characters.count - 1 < companionExperts.count {
+            let companion = WalkerCharacter(videoName: "guest-\(characters.count)")
+            companion.yOffset = -4
+            companion.characterColor = .white
+            companion.controller = self
+            companion.setup()
+            companion.hideCompanionAvatar()
+            characters.append(companion)
+        }
+
+        let layoutPositions = companionPositions(count: companionExperts.count, mainPosition: mainCharacter.positionProgress)
+
+        for (index, expert) in companionExperts.enumerated() {
+            let companion = characters[index + 1]
+            companion.controller = self
+            companion.configureCompanionAvatar(expert: expert, position: layoutPositions[index])
+        }
+
+        if characters.count > companionExperts.count + 1 {
+            for companion in characters[(companionExperts.count + 1)...] {
+                companion.hideCompanionAvatar()
+            }
+        }
+    }
+
+    private func companionPositions(count: Int, mainPosition: CGFloat) -> [CGFloat] {
+        switch count {
+        case 0:
+            return []
+        case 1:
+            return [mainPosition < 0.55 ? 0.78 : 0.22]
+        case 2:
+            return [0.2, 0.8]
+        default:
+            let candidates: [CGFloat] = [0.12, 0.3, 0.5, 0.7, 0.88]
+            let filtered = candidates.filter { abs($0 - mainPosition) > 0.08 }
+            let chosen = (filtered.isEmpty ? candidates : filtered)
+                .sorted { abs($0 - mainPosition) > abs($1 - mainPosition) }
+            return Array(chosen.prefix(count)).sorted()
+        }
     }
 
     // MARK: - Debug

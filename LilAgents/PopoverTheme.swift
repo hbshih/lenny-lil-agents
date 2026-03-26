@@ -42,7 +42,7 @@ struct PopoverTheme {
         titleBarBg: NSColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.0),
         titleText: NSColor(red: 1.0, green: 0.4, blue: 0.0, alpha: 1.0),
         titleFont: NSFont(name: "SFMono-Bold", size: 10) ?? .monospacedSystemFont(ofSize: 10, weight: .bold),
-        titleString: "CLAUDE",
+        titleString: "LENNY",
         separatorColor: NSColor(red: 1.0, green: 0.4, blue: 0.0, alpha: 0.3),
         font: NSFont(name: "SFMono-Regular", size: 11.5) ?? .monospacedSystemFont(ofSize: 11.5, weight: .regular),
         fontBold: NSFont(name: "SFMono-Medium", size: 11.5) ?? .monospacedSystemFont(ofSize: 11.5, weight: .medium),
@@ -71,7 +71,7 @@ struct PopoverTheme {
         titleBarBg: NSColor(red: 0.98, green: 0.93, blue: 0.88, alpha: 1.0),
         titleText: NSColor(red: 0.85, green: 0.35, blue: 0.45, alpha: 1.0),
         titleFont: .systemFont(ofSize: 12, weight: .heavy),
-        titleString: "claude ~",
+        titleString: "lenny ~",
         separatorColor: NSColor(red: 0.95, green: 0.55, blue: 0.65, alpha: 0.25),
         font: .systemFont(ofSize: 12, weight: .regular),
         fontBold: .systemFont(ofSize: 12, weight: .semibold),
@@ -100,7 +100,7 @@ struct PopoverTheme {
         titleBarBg: NSColor(red: 0.88, green: 0.90, blue: 0.93, alpha: 1.0),
         titleText: NSColor(red: 0.3, green: 0.3, blue: 0.35, alpha: 1.0),
         titleFont: .systemFont(ofSize: 12, weight: .semibold),
-        titleString: "claude ~",
+        titleString: "lenny ~",
         separatorColor: NSColor(red: 0.8, green: 0.82, blue: 0.85, alpha: 0.4),
         font: .systemFont(ofSize: 12, weight: .regular),
         fontBold: .systemFont(ofSize: 12, weight: .semibold),
@@ -129,7 +129,7 @@ struct PopoverTheme {
         titleBarBg: NSColor(red: 0.72, green: 0.75, blue: 0.68, alpha: 1.0),
         titleText: NSColor(red: 0.15, green: 0.17, blue: 0.12, alpha: 1.0),
         titleFont: NSFont(name: "Chicago", size: 11) ?? .systemFont(ofSize: 11, weight: .bold),
-        titleString: "Claude",
+        titleString: "Lenny",
         separatorColor: NSColor(red: 0.55, green: 0.58, blue: 0.50, alpha: 0.5),
         font: NSFont(name: "Geneva", size: 11) ?? .monospacedSystemFont(ofSize: 11, weight: .regular),
         fontBold: NSFont(name: "Geneva", size: 11) ?? .monospacedSystemFont(ofSize: 11, weight: .bold),
@@ -158,7 +158,10 @@ struct PopoverTheme {
 
     func withCharacterColor(_ color: NSColor) -> PopoverTheme {
         guard name == "Peach" else { return self }
-        let r = color.redComponent, g = color.greenComponent, b = color.blueComponent
+        guard let rgbColor = color.usingColorSpace(.deviceRGB) else { return self }
+        let r = rgbColor.redComponent
+        let g = rgbColor.greenComponent
+        let b = rgbColor.blueComponent
         let light = NSColor(red: min(r + 0.4, 1), green: min(g + 0.4, 1), blue: min(b + 0.4, 1), alpha: 0.25)
         let border = NSColor(red: r, green: g, blue: b, alpha: 0.6)
         return PopoverTheme(
@@ -201,5 +204,9 @@ struct PopoverTheme {
             bubbleCompletionBorder: bubbleCompletionBorder, bubbleCompletionText: bubbleCompletionText,
             bubbleFont: smallFont, bubbleCornerRadius: bubbleCornerRadius
         )
+    }
+
+    var rgbPopoverBackground: NSColor {
+        popoverBg.usingColorSpace(.deviceRGB) ?? popoverBg
     }
 }
