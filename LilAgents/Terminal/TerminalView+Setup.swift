@@ -6,28 +6,13 @@ extension TerminalView {
         wantsLayer = true
         layer?.backgroundColor = NSColor.clear.cgColor
 
-        let padding: CGFloat = 16
-        let topInset: CGFloat = 12
-        let topControlHeight: CGFloat = 30
-        let expertSuggestionHeight: CGFloat = 102
-        let attachmentHeight: CGFloat = 20
-        let composerHeight: CGFloat = 56
-        let bottomInset: CGFloat = 14
-        let interSectionSpacing: CGFloat = 10
         let panelRadius = max(t.inputCornerRadius, 12)
 
-        let composerY = bottomInset
-        let attachmentY = composerY + composerHeight + 4
-        let suggestionY = attachmentY + attachmentHeight + interSectionSpacing
-        let scrollY = suggestionY + expertSuggestionHeight + interSectionSpacing
-        let topControlY = frame.height - topInset - topControlHeight
-        let scrollHeight = max(160, topControlY - 8 - scrollY)
-
         scrollView.frame = NSRect(
-            x: padding,
-            y: scrollY,
-            width: frame.width - padding * 2,
-            height: scrollHeight
+            x: Layout.padding,
+            y: 120,
+            width: frame.width - Layout.padding * 2,
+            height: max(160, frame.height - 160)
         )
         scrollView.autoresizingMask = [.width, .height]
         scrollView.hasVerticalScroller = true
@@ -67,13 +52,13 @@ extension TerminalView {
         addSubview(scrollView)
 
         liveStatusContainer.frame = NSRect(
-            x: padding,
-            y: topControlY,
-            width: frame.width - padding * 2,
-            height: topControlHeight
+            x: Layout.padding,
+            y: frame.height - Layout.topInset - Layout.topControlHeight,
+            width: frame.width - Layout.padding * 2,
+            height: Layout.topControlHeight
         )
         liveStatusContainer.autoresizingMask = [.width, .minYMargin]
-        stylePanel(liveStatusContainer, background: t.inputBg.withAlphaComponent(0.92), border: t.separatorColor.withAlphaComponent(0.34), radius: topControlHeight / 2)
+        stylePanel(liveStatusContainer, background: t.inputBg.withAlphaComponent(0.92), border: t.separatorColor.withAlphaComponent(0.34), radius: Layout.topControlHeight / 2)
         liveStatusContainer.alphaValue = 0
         liveStatusContainer.isHidden = true
         addSubview(liveStatusContainer)
@@ -92,10 +77,10 @@ extension TerminalView {
         liveStatusContainer.addSubview(liveStatusLabel)
 
         expertSuggestionContainer.frame = NSRect(
-            x: padding,
-            y: suggestionY,
-            width: frame.width - padding * 2,
-            height: expertSuggestionHeight
+            x: Layout.padding,
+            y: 84,
+            width: frame.width - Layout.padding * 2,
+            height: 128
         )
         expertSuggestionContainer.autoresizingMask = [.width, .maxYMargin]
         stylePanel(expertSuggestionContainer, background: t.inputBg.withAlphaComponent(0.96), border: t.separatorColor.withAlphaComponent(0.34), radius: panelRadius)
@@ -103,7 +88,7 @@ extension TerminalView {
         expertSuggestionContainer.isHidden = true
         addSubview(expertSuggestionContainer)
 
-        expertSuggestionLabel.frame = NSRect(x: 14, y: expertSuggestionHeight - 28, width: expertSuggestionContainer.frame.width - 28, height: 16)
+        expertSuggestionLabel.frame = NSRect(x: 14, y: 96, width: expertSuggestionContainer.frame.width - 28, height: 16)
         expertSuggestionLabel.autoresizingMask = [.width]
         expertSuggestionLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
         expertSuggestionLabel.textColor = t.textDim
@@ -111,19 +96,19 @@ extension TerminalView {
         expertSuggestionContainer.addSubview(expertSuggestionLabel)
 
         expertSuggestionStack.orientation = .vertical
-        expertSuggestionStack.alignment = .leading
-        expertSuggestionStack.distribution = .fillEqually
-        expertSuggestionStack.spacing = 6
+        expertSuggestionStack.alignment = .width
+        expertSuggestionStack.distribution = .fill
+        expertSuggestionStack.spacing = 8
         expertSuggestionStack.edgeInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        expertSuggestionStack.frame = NSRect(x: 14, y: 12, width: expertSuggestionContainer.frame.width - 28, height: 56)
-        expertSuggestionStack.autoresizingMask = [.width]
+        expertSuggestionStack.frame = NSRect(x: 14, y: 12, width: expertSuggestionContainer.frame.width - 28, height: 76)
+        expertSuggestionStack.autoresizingMask = [.width, .height]
         expertSuggestionContainer.addSubview(expertSuggestionStack)
 
         attachmentLabel.frame = NSRect(
-            x: padding + 2,
-            y: attachmentY,
-            width: frame.width - padding * 2 - 4,
-            height: attachmentHeight
+            x: Layout.padding + 2,
+            y: 74,
+            width: frame.width - Layout.padding * 2 - 4,
+            height: Layout.attachmentHeight
         )
         attachmentLabel.autoresizingMask = [.width]
         attachmentLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
@@ -133,10 +118,10 @@ extension TerminalView {
         addSubview(attachmentLabel)
 
         let composerPanel = NSView(frame: NSRect(
-            x: padding,
-            y: composerY,
-            width: frame.width - padding * 2,
-            height: composerHeight
+            x: Layout.padding,
+            y: Layout.bottomInset,
+            width: frame.width - Layout.padding * 2,
+            height: Layout.composerHeight
         ))
         composerPanel.autoresizingMask = [.width, .maxYMargin]
         stylePanel(composerPanel, background: t.inputBg.withAlphaComponent(0.98), border: t.separatorColor.withAlphaComponent(0.40), radius: panelRadius + 4)
@@ -145,8 +130,8 @@ extension TerminalView {
         let sendButtonSize: CGFloat = 34
         let attachButtonSize: CGFloat = 28
         let rightInset: CGFloat = 12
-        let sendY = (composerHeight - sendButtonSize) / 2
-        let attachY = (composerHeight - attachButtonSize) / 2
+        let sendY = (Layout.composerHeight - sendButtonSize) / 2
+        let attachY = (Layout.composerHeight - attachButtonSize) / 2
         let sendX = composerPanel.frame.width - rightInset - sendButtonSize
         let attachX = sendX - 8 - attachButtonSize
 
@@ -186,7 +171,7 @@ extension TerminalView {
             x: 14,
             y: 8,
             width: attachX - 24,
-            height: composerHeight - 16
+            height: Layout.composerHeight - 16
         )
         inputField.autoresizingMask = [.width]
         inputField.focusRingType = .none
@@ -211,6 +196,7 @@ extension TerminalView {
         composerPanel.addSubview(inputField)
 
         registerForDraggedTypes([.fileURL])
+        relayoutPanels()
     }
 
     @objc func inputSubmitted() {
@@ -245,140 +231,5 @@ extension TerminalView {
             attributes: [.font: t.font, .foregroundColor: t.textDim]
         )
         inputField.needsDisplay = true
-    }
-
-    func setReturnToLennyVisible(_ visible: Bool) {
-        returnButton.isHidden = !visible
-    }
-
-    func setExpertSuggestions(_ experts: [ResponderExpert]) {
-        expertSuggestionTargets.removeAll()
-        expertSuggestionStack.arrangedSubviews.forEach { view in
-            expertSuggestionStack.removeArrangedSubview(view)
-            view.removeFromSuperview()
-        }
-
-        guard !experts.isEmpty else {
-            setPanelVisibility(expertSuggestionContainer, hidden: true)
-            return
-        }
-
-        let t = theme
-        for expert in experts {
-            let identifier = normalizeExpertSuggestionID(expert.name)
-            expertSuggestionTargets[identifier] = expert
-
-            let button = NSButton(title: "", target: self, action: #selector(expertSuggestionButtonTapped(_:)))
-            button.isBordered = false
-            button.bezelStyle = .regularSquare
-            button.wantsLayer = true
-            button.layer?.backgroundColor = t.bubbleBg.cgColor
-            button.layer?.cornerRadius = 12
-            button.layer?.borderWidth = 0.75
-            button.layer?.borderColor = t.separatorColor.withAlphaComponent(0.50).cgColor
-            button.attributedTitle = NSAttributedString(
-                string: expert.name,
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold),
-                    .foregroundColor: t.titleText
-                ]
-            )
-            button.setButtonType(.momentaryPushIn)
-            button.imagePosition = .noImage
-            button.identifier = NSUserInterfaceItemIdentifier(identifier)
-            button.contentTintColor = t.titleText
-            button.alignment = .left
-            button.frame.size.height = 25
-            expertSuggestionStack.addArrangedSubview(button)
-        }
-
-        setPanelVisibility(expertSuggestionContainer, hidden: false)
-    }
-
-    func setLiveStatus(_ text: String, isBusy: Bool, isError: Bool = false) {
-        let t = theme
-        guard !text.isEmpty else {
-            clearLiveStatus()
-            return
-        }
-
-        liveStatusContainer.layer?.borderColor = (isError ? t.errorColor : t.separatorColor.withAlphaComponent(0.42)).cgColor
-        liveStatusContainer.layer?.backgroundColor = (isError ? t.errorColor.withAlphaComponent(0.08) : t.inputBg.withAlphaComponent(0.96)).cgColor
-        liveStatusLabel.textColor = isError ? t.errorColor : (isBusy ? t.accentColor : t.successColor)
-        liveStatusLabel.stringValue = text
-        setPanelVisibility(liveStatusContainer, hidden: false)
-
-        if isBusy {
-            liveStatusSpinner.startAnimation(nil)
-        } else {
-            liveStatusSpinner.stopAnimation(nil)
-        }
-    }
-
-    func clearLiveStatus() {
-        liveStatusLabel.stringValue = ""
-        liveStatusSpinner.stopAnimation(nil)
-        setPanelVisibility(liveStatusContainer, hidden: true)
-    }
-
-    @objc func expertSuggestionButtonTapped(_ sender: NSButton) {
-        guard let identifier = sender.identifier?.rawValue,
-              let expert = expertSuggestionTargets[identifier] else {
-            return
-        }
-
-        onSelectExpert?(expert)
-    }
-
-    private func normalizeExpertSuggestionID(_ name: String) -> String {
-        let lowered = name.lowercased()
-        let scalars = lowered.unicodeScalars.map { scalar -> Character in
-            CharacterSet.alphanumerics.contains(scalar) ? Character(String(scalar)) : "-"
-        }
-        let raw = String(scalars)
-        return raw.replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    }
-
-    private func stylePanel(_ view: NSView, background: NSColor, border: NSColor, radius: CGFloat) {
-        view.wantsLayer = true
-        view.layer?.backgroundColor = background.cgColor
-        view.layer?.cornerRadius = radius
-        view.layer?.borderWidth = 0.75
-        view.layer?.borderColor = border.cgColor
-    }
-
-    private func setPanelVisibility(_ view: NSView, hidden: Bool) {
-        if hidden {
-            guard !view.isHidden else { return }
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.16
-                view.animator().alphaValue = 0
-            } completionHandler: {
-                view.isHidden = true
-            }
-        } else {
-            guard view.isHidden else { return }
-            view.alphaValue = 0
-            view.isHidden = false
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.16
-                view.animator().alphaValue = 1
-            }
-        }
-    }
-}
-
-extension TerminalView: NSTextViewDelegate {
-    func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
-        guard let url = link as? URL,
-              url.scheme == "lilagents-expert",
-              let host = url.host,
-              let expert = expertSuggestionTargets[host] else {
-            return false
-        }
-
-        onSelectExpert?(expert)
-        return true
     }
 }

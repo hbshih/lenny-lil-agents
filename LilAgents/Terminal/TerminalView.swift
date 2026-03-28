@@ -45,4 +45,13 @@ class TerminalView: NSView {
         t = t.withCustomFont()
         return t
     }
+
+    override func layout() {
+        super.layout()
+        relayoutPanels()
+    }
+
+    func setReturnToLennyVisible(_ visible: Bool) {
+        returnButton.isHidden = !visible
+    }
 }

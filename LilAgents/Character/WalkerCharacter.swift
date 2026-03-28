@@ -46,6 +46,9 @@ final class WalkerCharacter {
     var handoffEffectWindow: NSWindow?
     var handoffEffectAnimationView: LottieAnimationView?
     var expertNameWindow: NSWindow?
+    var popoverTitleLabel: NSTextField?
+    var popoverSubtitleLabel: NSTextField?
+    var popoverReturnButton: NSButton?
 
     var isClaudeBusy: Bool { claudeSession?.isBusy ?? false }
 
@@ -57,6 +60,7 @@ final class WalkerCharacter {
     var completionBubbleExpiry: CFTimeInterval = 0
     var showingCompletion = false
     var phraseAnimating = false
+    var currentActivityStatus = ""
 
     init(videoName: String) {
         self.videoName = videoName

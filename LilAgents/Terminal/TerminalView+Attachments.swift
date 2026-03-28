@@ -18,12 +18,14 @@ extension TerminalView {
         if pendingAttachments.isEmpty {
             attachmentLabel.stringValue = ""
             attachmentLabel.isHidden = true
+            relayoutPanels()
             return
         }
 
         let names = pendingAttachments.map(\.displayName).joined(separator: ", ")
         attachmentLabel.stringValue = "Attached: \(names)"
         attachmentLabel.isHidden = false
+        relayoutPanels()
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {

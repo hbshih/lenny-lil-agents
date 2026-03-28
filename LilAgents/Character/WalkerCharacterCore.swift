@@ -94,6 +94,7 @@ extension WalkerCharacter {
             setPersona(.lenny)
         }
         updateExpertNameTag()
+        refreshPopoverHeader()
         if !isIdleForPopover {
             openPopover()
         } else {
@@ -101,11 +102,6 @@ extension WalkerCharacter {
             terminalView?.setReturnToLennyVisible(expert != nil)
             if let session = claudeSession {
                 terminalView?.replayHistory(session.history(for: expert))
-            }
-            if let expert {
-                terminalView?.appendStatus("Follow-up mode: \(expert.name)")
-            } else {
-                terminalView?.appendStatus("Back to Lenny")
             }
         }
     }

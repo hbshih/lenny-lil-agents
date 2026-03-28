@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @AppStorage(AppSettings.preferredTransportKey) private var preferredTransport = AppSettings.PreferredTransport.automatic.rawValue
     @AppStorage(AppSettings.archiveAccessModeKey) private var archiveAccessMode = AppSettings.ArchiveAccessMode.starterPack.rawValue
     @AppStorage(AppSettings.officialLennyMCPTokenKey) private var officialToken = ""
     @AppStorage(AppSettings.debugLoggingEnabledKey) private var debugLoggingEnabled = true
@@ -8,6 +9,31 @@ struct SettingsView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 12) {
+                SettingsSection(icon: "bolt.horizontal.fill", title: "AI Transport") {
+                    Picker("Transport", selection: $preferredTransport) {
+                        Text("Auto select")
+                            .tag(AppSettings.PreferredTransport.automatic.rawValue)
+                        Text("Claude Code")
+                            .tag(AppSettings.PreferredTransport.claudeCode.rawValue)
+                        Text("Codex")
+                            .tag(AppSettings.PreferredTransport.codex.rawValue)
+                        Text("OpenAI API")
+                            .tag(AppSettings.PreferredTransport.openAIAPI.rawValue)
+                    }
+                    .pickerStyle(.radioGroup)
+                    .labelsHidden()
+
+                    Text("Auto select prefers Claude Code first, then Codex, then direct OpenAI API fallback. Choose a specific transport to force that path instead.")
+                        .settingsCaption()
+
+                    HStack(alignment: .center) {
+                        Label(transportStatusText, systemImage: transportStatusIcon)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
+                    }
+                }
 
                 // Archive Source
                 SettingsSection(icon: "archivebox.fill", title: "Archive Source") {
@@ -83,6 +109,32 @@ struct SettingsView: View {
     private var statusIcon: String {
         archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue
             ? "internaldrive.fill" : "network"
+    }
+
+    private var transportStatusText: String {
+        switch AppSettings.PreferredTransport(rawValue: preferredTransport) ?? .automatic {
+        case .automatic:
+            return "Default transport: auto-select Claude, then Codex, then OpenAI API."
+        case .claudeCode:
+            return "Default transport: Claude Code only. Requires Claude login or ANTHROPIC_API_KEY."
+        case .codex:
+            return "Default transport: Codex only. Requires Codex login or OPENAI_API_KEY."
+        case .openAIAPI:
+            return "Default transport: direct OpenAI Responses API only. Requires OPENAI_API_KEY."
+        }
+    }
+
+    private var transportStatusIcon: String {
+        switch AppSettings.PreferredTransport(rawValue: preferredTransport) ?? .automatic {
+        case .automatic:
+            return "arrow.triangle.branch"
+        case .claudeCode:
+            return "person.crop.square.fill"
+        case .codex:
+            return "terminal.fill"
+        case .openAIAPI:
+            return "network.badge.shield.half.filled"
+        }
     }
 }
 

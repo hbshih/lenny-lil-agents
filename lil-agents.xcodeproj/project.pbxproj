@@ -43,6 +43,19 @@
 		A10000010000000000000042 /* LocalArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000042 /* LocalArchive.swift */; };
 		A10000010000000000000044 /* SessionDebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000044 /* SessionDebugLogger.swift */; };
 		A10000010000000000000043 /* StarterArchive in Resources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000043 /* StarterArchive */; };
+		A10000010000000000000045 /* ClaudeSessionBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000045 /* ClaudeSessionBackend.swift */; };
+		A10000010000000000000046 /* ClaudeSessionCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000046 /* ClaudeSessionCLI.swift */; };
+		A10000010000000000000047 /* ClaudeSessionCLIParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000047 /* ClaudeSessionCLIParsing.swift */; };
+		A10000010000000000000048 /* ClaudeSessionExpertCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000048 /* ClaudeSessionExpertCatalog.swift */; };
+		A10000010000000000000049 /* ClaudeSessionExpertTextResolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000049 /* ClaudeSessionExpertTextResolution.swift */; };
+		A10000010000000000000050 /* ClaudeSessionOpenAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000050 /* ClaudeSessionOpenAI.swift */; };
+		A10000010000000000000052 /* ClaudeSessionSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000052 /* ClaudeSessionSupport.swift */; };
+		A10000010000000000000053 /* TerminalView+Panels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000053 /* TerminalView+Panels.swift */; };
+		A10000010000000000000054 /* TerminalViewLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000054 /* TerminalViewLayout.swift */; };
+		A10000010000000000000055 /* WalkerCharacterBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000055 /* WalkerCharacterBubble.swift */; };
+		A10000010000000000000056 /* WalkerCharacterExpertTag.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000056 /* WalkerCharacterExpertTag.swift */; };
+		A10000010000000000000057 /* WalkerCharacterPopoverWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000057 /* WalkerCharacterPopoverWindow.swift */; };
+		A10000010000000000000058 /* WalkerCharacterSessionWiring.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000058 /* WalkerCharacterSessionWiring.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,15 +72,15 @@
 		A10000120000000000000004 /* fall-smoke-dust.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "fall-smoke-dust.json"; sourceTree = "<group>"; };
 		A10000020000000000000020 /* PopoverTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverTheme.swift; sourceTree = "<group>"; };
 		A10000020000000000000021 /* CharacterContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterContentView.swift; sourceTree = "<group>"; };
-			A10000020000000000000022 /* ClaudeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSession.swift; sourceTree = "<group>"; };
-			A10000020000000000000023 /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
-			A10000020000000000000024 /* WalkerCharacter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacter.swift; sourceTree = "<group>"; };
-			A10000020000000000000031 /* WalkerCharacterTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterTypes.swift; sourceTree = "<group>"; };
-			A10000020000000000000032 /* WalkerCharacterCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterCore.swift; sourceTree = "<group>"; };
-			A10000020000000000000033 /* WalkerCharacterPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterPopover.swift; sourceTree = "<group>"; };
-			A10000020000000000000034 /* WalkerCharacterVisuals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterVisuals.swift; sourceTree = "<group>"; };
-			A10000020000000000000035 /* WalkerCharacterMovement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterMovement.swift; sourceTree = "<group>"; };
-			A10000020000000000000025 /* LilAgentsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LilAgentsController.swift; sourceTree = "<group>"; };
+		A10000020000000000000022 /* ClaudeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSession.swift; sourceTree = "<group>"; };
+		A10000020000000000000023 /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
+		A10000020000000000000024 /* WalkerCharacter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacter.swift; sourceTree = "<group>"; };
+		A10000020000000000000031 /* WalkerCharacterTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterTypes.swift; sourceTree = "<group>"; };
+		A10000020000000000000032 /* WalkerCharacterCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterCore.swift; sourceTree = "<group>"; };
+		A10000020000000000000033 /* WalkerCharacterPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterPopover.swift; sourceTree = "<group>"; };
+		A10000020000000000000034 /* WalkerCharacterVisuals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterVisuals.swift; sourceTree = "<group>"; };
+		A10000020000000000000035 /* WalkerCharacterMovement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterMovement.swift; sourceTree = "<group>"; };
+		A10000020000000000000025 /* LilAgentsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LilAgentsController.swift; sourceTree = "<group>"; };
 		A10000020000000000000026 /* PaddedTextFieldCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaddedTextFieldCell.swift; sourceTree = "<group>"; };
 		A10000020000000000000027 /* TerminalViewSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+Setup.swift"; sourceTree = "<group>"; };
 		A10000020000000000000028 /* TerminalViewTranscript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+Transcript.swift"; sourceTree = "<group>"; };
@@ -83,6 +96,19 @@
 		A10000020000000000000044 /* SessionDebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDebugLogger.swift; sourceTree = "<group>"; };
 		A10000020000000000000043 /* StarterArchive */ = {isa = PBXFileReference; lastKnownFileType = folder; path = StarterArchive; sourceTree = "<group>"; };
 		A10000030000000000000001 /* lil agents.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "lil agents.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000020000000000000045 /* ClaudeSessionBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionBackend.swift; sourceTree = "<group>"; };
+		A10000020000000000000046 /* ClaudeSessionCLI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionCLI.swift; sourceTree = "<group>"; };
+		A10000020000000000000047 /* ClaudeSessionCLIParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionCLIParsing.swift; sourceTree = "<group>"; };
+		A10000020000000000000048 /* ClaudeSessionExpertCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionExpertCatalog.swift; sourceTree = "<group>"; };
+		A10000020000000000000049 /* ClaudeSessionExpertTextResolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionExpertTextResolution.swift; sourceTree = "<group>"; };
+		A10000020000000000000050 /* ClaudeSessionOpenAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionOpenAI.swift; sourceTree = "<group>"; };
+		A10000020000000000000052 /* ClaudeSessionSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionSupport.swift; sourceTree = "<group>"; };
+		A10000020000000000000053 /* TerminalView+Panels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+Panels.swift"; sourceTree = "<group>"; };
+		A10000020000000000000054 /* TerminalViewLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalViewLayout.swift; sourceTree = "<group>"; };
+		A10000020000000000000055 /* WalkerCharacterBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterBubble.swift; sourceTree = "<group>"; };
+		A10000020000000000000056 /* WalkerCharacterExpertTag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterExpertTag.swift; sourceTree = "<group>"; };
+		A10000020000000000000057 /* WalkerCharacterPopoverWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterPopoverWindow.swift; sourceTree = "<group>"; };
+		A10000020000000000000058 /* WalkerCharacterSessionWiring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterSessionWiring.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,31 +135,11 @@
 		A10000050000000000000002 /* LilAgents */ = {
 			isa = PBXGroup;
 			children = (
-				A10000020000000000000001 /* LilAgentsApp.swift */,
-				A10000020000000000000020 /* PopoverTheme.swift */,
-				A10000020000000000000021 /* CharacterContentView.swift */,
-				A10000020000000000000022 /* ClaudeSession.swift */,
-				A10000020000000000000036 /* ClaudeSessionModels.swift */,
-				A10000020000000000000037 /* ClaudeSessionState.swift */,
-				A10000020000000000000038 /* ClaudeSessionExpertResolution.swift */,
-				A10000020000000000000039 /* ClaudeSessionTransport.swift */,
-				A10000020000000000000040 /* AppSettings.swift */,
-				A10000020000000000000041 /* SettingsView.swift */,
-				A10000020000000000000042 /* LocalArchive.swift */,
-				A10000020000000000000044 /* SessionDebugLogger.swift */,
-				A10000020000000000000023 /* TerminalView.swift */,
-				A10000020000000000000026 /* PaddedTextFieldCell.swift */,
-				A10000020000000000000027 /* TerminalViewSetup.swift */,
-				A10000020000000000000028 /* TerminalViewTranscript.swift */,
-					A10000020000000000000029 /* TerminalViewAttachments.swift */,
-					A10000020000000000000030 /* TerminalMarkdownRenderer.swift */,
-					A10000020000000000000024 /* WalkerCharacter.swift */,
-					A10000020000000000000031 /* WalkerCharacterTypes.swift */,
-					A10000020000000000000032 /* WalkerCharacterCore.swift */,
-					A10000020000000000000033 /* WalkerCharacterPopover.swift */,
-					A10000020000000000000034 /* WalkerCharacterVisuals.swift */,
-					A10000020000000000000035 /* WalkerCharacterMovement.swift */,
-					A10000020000000000000025 /* LilAgentsController.swift */,
+				A10000060000000000000010 /* App */,
+				A10000060000000000000011 /* Session */,
+				A10000060000000000000012 /* Character */,
+				A10000060000000000000013 /* Terminal */,
+				A10000060000000000000014 /* Support */,
 				A10000020000000000000002 /* walk-bruce-01.mov */,
 				A10000020000000000000005 /* walk-jazz-01.mov */,
 				A10000020000000000000007 /* Assets.xcassets */,
@@ -147,6 +153,84 @@
 				A10000020000000000000004 /* LilAgents.entitlements */,
 			);
 			path = LilAgents;
+			sourceTree = "<group>";
+		};
+		A10000060000000000000010 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A10000020000000000000001 /* LilAgentsApp.swift */,
+				A10000020000000000000025 /* LilAgentsController.swift */,
+				A10000020000000000000040 /* AppSettings.swift */,
+				A10000020000000000000041 /* SettingsView.swift */,
+			);
+			name = App;
+			path = App;
+			sourceTree = "<group>";
+		};
+		A10000060000000000000011 /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				A10000020000000000000022 /* ClaudeSession.swift */,
+				A10000020000000000000036 /* ClaudeSessionModels.swift */,
+				A10000020000000000000037 /* ClaudeSessionState.swift */,
+				A10000020000000000000045 /* ClaudeSessionBackend.swift */,
+				A10000020000000000000039 /* ClaudeSessionTransport.swift */,
+				A10000020000000000000046 /* ClaudeSessionCLI.swift */,
+				A10000020000000000000047 /* ClaudeSessionCLIParsing.swift */,
+				A10000020000000000000050 /* ClaudeSessionOpenAI.swift */,
+				A10000020000000000000038 /* ClaudeSessionExpertResolution.swift */,
+				A10000020000000000000048 /* ClaudeSessionExpertCatalog.swift */,
+				A10000020000000000000049 /* ClaudeSessionExpertTextResolution.swift */,
+				A10000020000000000000052 /* ClaudeSessionSupport.swift */,
+				A10000020000000000000042 /* LocalArchive.swift */,
+				A10000020000000000000044 /* SessionDebugLogger.swift */,
+			);
+			name = Session;
+			path = Session;
+			sourceTree = "<group>";
+		};
+		A10000060000000000000012 /* Character */ = {
+			isa = PBXGroup;
+			children = (
+				A10000020000000000000024 /* WalkerCharacter.swift */,
+				A10000020000000000000031 /* WalkerCharacterTypes.swift */,
+				A10000020000000000000032 /* WalkerCharacterCore.swift */,
+				A10000020000000000000034 /* WalkerCharacterVisuals.swift */,
+				A10000020000000000000035 /* WalkerCharacterMovement.swift */,
+				A10000020000000000000055 /* WalkerCharacterBubble.swift */,
+				A10000020000000000000056 /* WalkerCharacterExpertTag.swift */,
+				A10000020000000000000033 /* WalkerCharacterPopover.swift */,
+				A10000020000000000000057 /* WalkerCharacterPopoverWindow.swift */,
+				A10000020000000000000058 /* WalkerCharacterSessionWiring.swift */,
+			);
+			name = Character;
+			path = Character;
+			sourceTree = "<group>";
+		};
+		A10000060000000000000013 /* Terminal */ = {
+			isa = PBXGroup;
+			children = (
+				A10000020000000000000023 /* TerminalView.swift */,
+				A10000020000000000000027 /* TerminalViewSetup.swift */,
+				A10000020000000000000053 /* TerminalView+Panels.swift */,
+				A10000020000000000000028 /* TerminalViewTranscript.swift */,
+				A10000020000000000000029 /* TerminalViewAttachments.swift */,
+				A10000020000000000000054 /* TerminalViewLayout.swift */,
+				A10000020000000000000030 /* TerminalMarkdownRenderer.swift */,
+				A10000020000000000000026 /* PaddedTextFieldCell.swift */,
+			);
+			name = Terminal;
+			path = Terminal;
+			sourceTree = "<group>";
+		};
+		A10000060000000000000014 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				A10000020000000000000020 /* PopoverTheme.swift */,
+				A10000020000000000000021 /* CharacterContentView.swift */,
+			);
+			name = Support;
+			path = Support;
 			sourceTree = "<group>";
 		};
 		A10000050000000000000003 /* Products */ = {
@@ -246,9 +330,16 @@
 				A10000010000000000000020 /* PopoverTheme.swift in Sources */,
 				A10000010000000000000021 /* CharacterContentView.swift in Sources */,
 				A10000010000000000000022 /* ClaudeSession.swift in Sources */,
+				A10000010000000000000045 /* ClaudeSessionBackend.swift in Sources */,
+				A10000010000000000000046 /* ClaudeSessionCLI.swift in Sources */,
+				A10000010000000000000047 /* ClaudeSessionCLIParsing.swift in Sources */,
 				A10000010000000000000036 /* ClaudeSessionModels.swift in Sources */,
 				A10000010000000000000037 /* ClaudeSessionState.swift in Sources */,
+				A10000010000000000000048 /* ClaudeSessionExpertCatalog.swift in Sources */,
 				A10000010000000000000038 /* ClaudeSessionExpertResolution.swift in Sources */,
+				A10000010000000000000049 /* ClaudeSessionExpertTextResolution.swift in Sources */,
+				A10000010000000000000050 /* ClaudeSessionOpenAI.swift in Sources */,
+				A10000010000000000000052 /* ClaudeSessionSupport.swift in Sources */,
 				A10000010000000000000039 /* ClaudeSessionTransport.swift in Sources */,
 				A10000010000000000000040 /* AppSettings.swift in Sources */,
 				A10000010000000000000041 /* SettingsView.swift in Sources */,
@@ -256,6 +347,8 @@
 				A10000010000000000000044 /* SessionDebugLogger.swift in Sources */,
 				A10000010000000000000023 /* TerminalView.swift in Sources */,
 				A10000010000000000000026 /* PaddedTextFieldCell.swift in Sources */,
+				A10000010000000000000054 /* TerminalViewLayout.swift in Sources */,
+				A10000010000000000000053 /* TerminalView+Panels.swift in Sources */,
 				A10000010000000000000027 /* TerminalViewSetup.swift in Sources */,
 				A10000010000000000000028 /* TerminalViewTranscript.swift in Sources */,
 					A10000010000000000000029 /* TerminalViewAttachments.swift in Sources */,
@@ -263,7 +356,11 @@
 					A10000010000000000000024 /* WalkerCharacter.swift in Sources */,
 					A10000010000000000000031 /* WalkerCharacterTypes.swift in Sources */,
 					A10000010000000000000032 /* WalkerCharacterCore.swift in Sources */,
+					A10000010000000000000055 /* WalkerCharacterBubble.swift in Sources */,
+					A10000010000000000000056 /* WalkerCharacterExpertTag.swift in Sources */,
 					A10000010000000000000033 /* WalkerCharacterPopover.swift in Sources */,
+					A10000010000000000000057 /* WalkerCharacterPopoverWindow.swift in Sources */,
+					A10000010000000000000058 /* WalkerCharacterSessionWiring.swift in Sources */,
 					A10000010000000000000034 /* WalkerCharacterVisuals.swift in Sources */,
 					A10000010000000000000035 /* WalkerCharacterMovement.swift in Sources */,
 					A10000010000000000000025 /* LilAgentsController.swift in Sources */,

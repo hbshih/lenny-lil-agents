@@ -143,15 +143,8 @@ extension TerminalView {
                 textView.textStorage?.append(TerminalMarkdownRenderer.render(msg.text + "\n", theme: t))
             case .error:
                 appendError(msg.text)
-            case .toolUse:
-                textView.textStorage?.append(NSAttributedString(string: "  \(msg.text)\n", attributes: [
-                    .font: t.font, .foregroundColor: t.accentColor
-                ]))
-            case .toolResult:
-                let isErr = msg.text.hasPrefix("ERROR:")
-                textView.textStorage?.append(NSAttributedString(string: "  \(msg.text)\n", attributes: [
-                    .font: t.font, .foregroundColor: isErr ? t.errorColor : t.successColor
-                ]))
+            case .toolUse, .toolResult:
+                continue
             }
         }
         scrollToBottom()
@@ -162,7 +155,7 @@ extension TerminalView {
         textView.scrollToEndOfDocument(nil)
     }
 
-    private func resizeTranscriptToFitContent() {
+    func resizeTranscriptToFitContent() {
         guard let textContainer = textView.textContainer,
               let layoutManager = textView.layoutManager else { return }
 
@@ -173,15 +166,5 @@ extension TerminalView {
         if abs(textView.frame.height - targetHeight) > 1 {
             textView.frame.size.height = targetHeight
         }
-    }
-
-    private func normalizeExpertSuggestionID(_ name: String) -> String {
-        let lowered = name.lowercased()
-        let scalars = lowered.unicodeScalars.map { scalar -> Character in
-            CharacterSet.alphanumerics.contains(scalar) ? Character(String(scalar)) : "-"
-        }
-        let raw = String(scalars)
-        return raw.replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
     }
 }

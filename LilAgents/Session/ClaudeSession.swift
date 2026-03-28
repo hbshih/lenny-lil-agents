@@ -24,6 +24,7 @@ final class ClaudeSession {
     var conversations: [String: ConversationState] = [:]
     var focusedExpert: ResponderExpert?
     var selectedBackend: Backend?
+    var selectedBackendPreferenceKey: String?
     var pendingExperts: [ResponderExpert] = []
 
     var onText: ((String) -> Void)?

@@ -1,14 +1,32 @@
 import Foundation
 
 enum AppSettings {
+    enum PreferredTransport: String {
+        case automatic
+        case claudeCode
+        case codex
+        case openAIAPI
+    }
+
     enum ArchiveAccessMode: String {
         case starterPack
         case officialMCP
     }
 
+    static let preferredTransportKey = "preferredTransport"
     static let archiveAccessModeKey = "archiveAccessMode"
     static let officialLennyMCPTokenKey = "officialLennyMCPToken"
     static let debugLoggingEnabledKey = "debugLoggingEnabled"
+
+    static var preferredTransport: PreferredTransport {
+        get {
+            let rawValue = UserDefaults.standard.string(forKey: preferredTransportKey) ?? PreferredTransport.automatic.rawValue
+            return PreferredTransport(rawValue: rawValue) ?? .automatic
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: preferredTransportKey)
+        }
+    }
 
     static var archiveAccessMode: ArchiveAccessMode {
         get {
