@@ -138,7 +138,6 @@ extension WalkerCharacter {
         let delay = Double.random(in: 2.0...5.0)
         pauseEndTime = CACurrentMediaTime() + delay
     }
-
     @objc func returnToGenieTapped() {
         controller?.returnToGenie()
     }

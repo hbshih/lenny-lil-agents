@@ -152,7 +152,6 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
 }
 
 extension TerminalView {
-
     func appendUser(_ text: String, attachments: [SessionAttachment] = []) {
         let t = theme
         let visibleText = text.isEmpty ? "(with attachments)" : text

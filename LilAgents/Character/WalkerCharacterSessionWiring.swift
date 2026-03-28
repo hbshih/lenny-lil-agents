@@ -26,11 +26,7 @@ extension WalkerCharacter {
             self.showCompletionBubble()
             self.updateExpertNameTag()
             if self.focusedExpert != nil {
-<<<<<<< ours
-                self.terminalView?.hideExpertSuggestions()
-=======
                 self.terminalView?.hideExpertSuggestions(clearState: false)
->>>>>>> theirs
             } else if !stagedExperts.isEmpty {
                 let names = stagedExperts.map(\.name).joined(separator: ", ")
                 self.terminalView?.setExpertSuggestions(stagedExperts)
@@ -52,10 +48,7 @@ extension WalkerCharacter {
         session.onToolUse = { [weak self] toolName, input in
             guard let self else { return }
             let summary = self.formatToolInput(input)
-<<<<<<< ours
             self.noteLiveStatusEvent()
-=======
->>>>>>> theirs
             self.currentActivityStatus = self.formatLiveStatus(toolName: toolName, summary: summary)
             self.terminalView?.appendToolUse(toolName: toolName, summary: summary)
             self.updateExpertNameTag()
@@ -67,15 +60,11 @@ extension WalkerCharacter {
 
         session.onToolResult = { [weak self] summary, isError in
             if let self {
-<<<<<<< ours
                 self.noteLiveStatusEvent()
                 self.currentActivityStatus = summary
                 if isError {
                     self.stopLiveStatusFallback()
                 }
-=======
-                self.currentActivityStatus = summary
->>>>>>> theirs
             }
             self?.terminalView?.appendToolResult(summary: summary, isError: isError)
             self?.updateExpertNameTag()
@@ -127,7 +116,6 @@ extension WalkerCharacter {
         return "\(toolName) • \(trimmedSummary)"
     }
 
-<<<<<<< ours
     func noteLiveStatusEvent() {
         lastLiveStatusEventAt = Date()
     }
@@ -181,9 +169,6 @@ extension WalkerCharacter {
         }
         lastLiveStatusEventAt = Date()
     }
-
-=======
->>>>>>> theirs
     func updatePopoverPosition() {
         guard let popover = popoverWindow, isIdleForPopover else { return }
         guard let screen = NSScreen.main else { return }
