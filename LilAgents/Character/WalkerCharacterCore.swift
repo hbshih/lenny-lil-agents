@@ -104,14 +104,25 @@ extension WalkerCharacter {
                 terminalView?.replayHistory(session.history(for: expert))
             }
             if expert == nil {
+<<<<<<< ours
                 let suggestions = controller?.suggestedExperts ?? []
+=======
+                let controllerSuggestions = controller?.suggestedExperts ?? []
+                let suggestions = controllerSuggestions.isEmpty
+                    ? (terminalView?.currentExpertSuggestions ?? [])
+                    : controllerSuggestions
+>>>>>>> theirs
                 if suggestions.isEmpty {
                     terminalView?.hideExpertSuggestions()
                 } else {
                     terminalView?.setExpertSuggestionsCollapsed(suggestions)
                 }
             } else {
+<<<<<<< ours
                 terminalView?.hideExpertSuggestions()
+=======
+                terminalView?.hideExpertSuggestions(clearState: false)
+>>>>>>> theirs
             }
         }
     }

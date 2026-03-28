@@ -61,6 +61,9 @@ final class WalkerCharacter {
     var showingCompletion = false
     var phraseAnimating = false
     var currentActivityStatus = ""
+    var liveStatusFallbackTimer: Timer?
+    var lastLiveStatusEventAt: Date?
+    var liveStatusFallbackIndex = 0
 
     init(videoName: String) {
         self.videoName = videoName

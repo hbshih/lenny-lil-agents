@@ -18,6 +18,7 @@ extension WalkerCharacter {
             guard let self else { return }
             let stagedExperts = self.terminalView?.deferredExpertSuggestions ?? []
             SessionDebugLogger.log("ui", "onTurnComplete fired. focusedExpert=\(self.focusedExpert?.name ?? "none") stagedExperts=\(stagedExperts.map(\.name).joined(separator: ", "))")
+            self.stopLiveStatusFallback()
             self.currentActivityStatus = ""
             self.terminalView?.endStreaming()
             self.terminalView?.clearLiveStatus()
@@ -25,7 +26,11 @@ extension WalkerCharacter {
             self.showCompletionBubble()
             self.updateExpertNameTag()
             if self.focusedExpert != nil {
+<<<<<<< ours
                 self.terminalView?.hideExpertSuggestions()
+=======
+                self.terminalView?.hideExpertSuggestions(clearState: false)
+>>>>>>> theirs
             } else if !stagedExperts.isEmpty {
                 let names = stagedExperts.map(\.name).joined(separator: ", ")
                 self.terminalView?.setExpertSuggestions(stagedExperts)
@@ -37,6 +42,7 @@ extension WalkerCharacter {
         }
 
         session.onError = { [weak self] text in
+            self?.stopLiveStatusFallback()
             self?.currentActivityStatus = ""
             self?.terminalView?.setLiveStatus(text, isBusy: false, isError: true)
             self?.terminalView?.appendError(text)
@@ -46,20 +52,37 @@ extension WalkerCharacter {
         session.onToolUse = { [weak self] toolName, input in
             guard let self else { return }
             let summary = self.formatToolInput(input)
+<<<<<<< ours
+            self.noteLiveStatusEvent()
+=======
+>>>>>>> theirs
             self.currentActivityStatus = self.formatLiveStatus(toolName: toolName, summary: summary)
             self.terminalView?.appendToolUse(toolName: toolName, summary: summary)
             self.updateExpertNameTag()
+
+            if toolName.lowercased().contains("planning") {
+                self.startLiveStatusFallback()
+            }
         }
 
         session.onToolResult = { [weak self] summary, isError in
             if let self {
+<<<<<<< ours
+                self.noteLiveStatusEvent()
                 self.currentActivityStatus = summary
+                if isError {
+                    self.stopLiveStatusFallback()
+                }
+=======
+                self.currentActivityStatus = summary
+>>>>>>> theirs
             }
             self?.terminalView?.appendToolResult(summary: summary, isError: isError)
             self?.updateExpertNameTag()
         }
 
         session.onProcessExit = { [weak self] in
+            self?.stopLiveStatusFallback()
             self?.terminalView?.endStreaming()
             self?.terminalView?.appendError("Archive session ended.")
         }
@@ -104,6 +127,63 @@ extension WalkerCharacter {
         return "\(toolName) • \(trimmedSummary)"
     }
 
+<<<<<<< ours
+    func noteLiveStatusEvent() {
+        lastLiveStatusEventAt = Date()
+    }
+
+    func startLiveStatusFallback() {
+        noteLiveStatusEvent()
+        liveStatusFallbackIndex = 0
+
+        guard liveStatusFallbackTimer == nil else { return }
+
+        liveStatusFallbackTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
+            self?.advanceLiveStatusFallbackIfNeeded()
+        }
+
+        if let timer = liveStatusFallbackTimer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
+    func stopLiveStatusFallback() {
+        liveStatusFallbackTimer?.invalidate()
+        liveStatusFallbackTimer = nil
+        lastLiveStatusEventAt = nil
+        liveStatusFallbackIndex = 0
+    }
+
+    func advanceLiveStatusFallbackIfNeeded() {
+        guard isClaudeBusy else {
+            stopLiveStatusFallback()
+            return
+        }
+
+        let lastEventAt = lastLiveStatusEventAt ?? Date()
+        guard Date().timeIntervalSince(lastEventAt) >= 4.5 else { return }
+
+        let fallbackStatuses = [
+            "Preparing request",
+            "Contacting archive",
+            "Reading matches",
+            "Drafting answer"
+        ]
+
+        let index = min(liveStatusFallbackIndex, fallbackStatuses.count - 1)
+        let nextStatus = fallbackStatuses[index]
+        currentActivityStatus = nextStatus
+        terminalView?.setLiveStatus(nextStatus, isBusy: true, isError: false)
+        updateExpertNameTag()
+
+        if liveStatusFallbackIndex < fallbackStatuses.count - 1 {
+            liveStatusFallbackIndex += 1
+        }
+        lastLiveStatusEventAt = Date()
+    }
+
+=======
+>>>>>>> theirs
     func updatePopoverPosition() {
         guard let popover = popoverWindow, isIdleForPopover else { return }
         guard let screen = NSScreen.main else { return }

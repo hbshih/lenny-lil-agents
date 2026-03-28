@@ -141,11 +141,11 @@ extension ClaudeSession {
         let transcript = priorMessages.compactMap { message -> String? in
             switch message.role {
             case .user:
-                return "User: \(message.text)"
+                return "User: \(trimPromptContext(message.text, limit: 700))"
             case .assistant:
-                return "Assistant: \(message.text)"
+                return "Assistant: \(trimPromptContext(message.text, limit: 1_400))"
             case .error:
-                return "System error: \(message.text)"
+                return "System error: \(trimPromptContext(message.text, limit: 500))"
             case .toolUse, .toolResult:
                 return nil
             }
@@ -175,6 +175,15 @@ extension ClaudeSession {
         let trimmed = Array(history.dropLast())
         let maxMessages = expert == nil ? 6 : 4
         return trimmed.suffix(maxMessages)
+    }
+
+    func trimPromptContext(_ text: String, limit: Int) -> String {
+        let normalized = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard normalized.count > limit else { return normalized }
+        return String(normalized.prefix(limit)) + "\n[Truncated for prompt length]"
     }
 
     func attachmentPromptSections(for attachments: [SessionAttachment]) -> String {
