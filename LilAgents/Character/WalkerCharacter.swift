@@ -6,8 +6,8 @@ final class WalkerCharacter {
     var window: NSWindow!
     var imageView: NSImageView!
 
-    let displayHeight: CGFloat = 124
-    let displayWidth: CGFloat = 124
+    let displayHeight: CGFloat = 96
+    let displayWidth: CGFloat = 96
 
     var accelStart: CFTimeInterval = 3.0
     var fullSpeedStart: CFTimeInterval = 3.75

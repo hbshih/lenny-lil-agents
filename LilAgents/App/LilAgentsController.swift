@@ -22,7 +22,7 @@ class LilAgentsController {
         lenny.walkAmountRange = 0.35...0.6
         lenny.yOffset = -4
         lenny.characterColor = NSColor(red: 0.96, green: 0.63, blue: 0.23, alpha: 1.0)
-        lenny.positionProgress = 0.5
+        lenny.positionProgress = 0.9
         lenny.pauseEndTime = CACurrentMediaTime() + Double.random(in: 0.5...2.0)
         lenny.setup()
 
