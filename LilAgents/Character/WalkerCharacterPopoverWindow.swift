@@ -13,8 +13,8 @@ extension WalkerCharacter {
 
     func createPopoverWindow() {
         let t = resolvedTheme
-        let popoverWidth: CGFloat = 640
-        let popoverHeight: CGFloat = 600
+        let popoverWidth: CGFloat = 560
+        let popoverHeight: CGFloat = 460
 
         let win = KeyableWindow(
             contentRect: CGRect(x: 0, y: 0, width: popoverWidth, height: popoverHeight),
@@ -55,6 +55,7 @@ extension WalkerCharacter {
         let titleBar = NSView(frame: NSRect(x: 0, y: popoverHeight - titleBarHeight, width: popoverWidth, height: titleBarHeight))
         titleBar.wantsLayer = true
         titleBar.layer?.backgroundColor = t.titleBarBg.withAlphaComponent(0.50).cgColor
+        titleBar.autoresizingMask = [.width, .minYMargin]
         container.addSubview(titleBar)
 
         let titleLabel = NSTextField(labelWithString: focusedExpert?.name ?? t.titleString)
@@ -115,6 +116,7 @@ extension WalkerCharacter {
         let sep = NSView(frame: NSRect(x: 0, y: popoverHeight - titleBarHeight - 1, width: popoverWidth, height: 0.5))
         sep.wantsLayer = true
         sep.layer?.backgroundColor = t.separatorColor.withAlphaComponent(0.30).cgColor
+        sep.autoresizingMask = [.width, .minYMargin]
         container.addSubview(sep)
 
         let terminal = TerminalView(frame: NSRect(x: 0, y: 0, width: popoverWidth, height: popoverHeight - titleBarHeight - 1))
