@@ -8,6 +8,7 @@ extension ClaudeSession {
         arguments: [String],
         environment: [String: String],
         workingDirectory: URL?,
+        onLineReceived: ((String) -> Void)? = nil,
         completion: @escaping (Int32, String, String) -> Void
     ) {
         let process = Process()
@@ -27,13 +28,53 @@ extension ClaudeSession {
             "launching process executable=\(executablePath) args=\(arguments) cwd=\(workingDirectory?.path ?? FileManager.default.currentDirectoryPath)"
         )
 
+        var finalStdout = ""
+        var finalStderr = ""
+        let queue = DispatchQueue(label: "lil-agents.runProcess", attributes: .concurrent)
+
+        func processLines(_ string: String) {
+            if let onLineReceived {
+                let lines = string.components(separatedBy: .newlines)
+                for line in lines {
+                    let trim = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trim.isEmpty else { continue }
+                    DispatchQueue.main.async {
+                        onLineReceived(trim)
+                    }
+                }
+            }
+        }
+
+        let processStdout: (Data) -> Void = { data in
+            guard let string = String(data: data, encoding: .utf8), !string.isEmpty else { return }
+            queue.sync(flags: .barrier) { finalStdout += string }
+            processLines(string)
+        }
+
+        let processStderr: (Data) -> Void = { data in
+            guard let string = String(data: data, encoding: .utf8), !string.isEmpty else { return }
+            queue.sync(flags: .barrier) { finalStderr += string }
+            processLines(string)
+        }
+
+        stdout.fileHandleForReading.readabilityHandler = { handle in processStdout(handle.availableData) }
+        stderr.fileHandleForReading.readabilityHandler = { handle in processStderr(handle.availableData) }
+
         process.terminationHandler = { process in
-            let stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
-            let stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
-            let stdoutText = String(data: stdoutData, encoding: .utf8) ?? ""
-            let stderrText = String(data: stderrData, encoding: .utf8) ?? ""
-            DispatchQueue.main.async {
-                completion(process.terminationStatus, stdoutText, stderrText)
+            stdout.fileHandleForReading.readabilityHandler = nil
+            stderr.fileHandleForReading.readabilityHandler = nil
+            
+            let remainingOut = stdout.fileHandleForReading.readDataToEndOfFile()
+            let remainingErr = stderr.fileHandleForReading.readDataToEndOfFile()
+            processStdout(remainingOut)
+            processStderr(remainingErr)
+
+            queue.sync {
+                let outText = finalStdout
+                let errText = finalStderr
+                DispatchQueue.main.async {
+                    completion(process.terminationStatus, outText, errText)
+                }
             }
         }
 

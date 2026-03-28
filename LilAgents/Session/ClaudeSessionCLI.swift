@@ -66,7 +66,27 @@ extension ClaudeSession {
             executablePath: executablePath,
             arguments: args,
             environment: environment,
-            workingDirectory: preferredWorkingDirectoryURL()
+            workingDirectory: preferredWorkingDirectoryURL(),
+            onLineReceived: { [weak self] line in
+                // Claude Code JSON stream parsing
+                if let data = line.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let type = json["type"] as? String {
+                        if type == "message", let msg = json["message"] as? String {
+                            self?.onToolUse?("Generating", ["summary": msg])
+                        } else if type == "tool_use" {
+                            let tool = json["tool"] as? String ?? "Tool"
+                            self?.onToolUse?("Running", ["summary": "Using \(tool)..."])
+                        } else if type == "progress" {
+                            let msg = json["message"] as? String ?? "Processing..."
+                            self?.onToolUse?("Progress", ["summary": msg])
+                        }
+                    }
+                } else if !line.hasPrefix("{") && !line.hasPrefix("}") {
+                    // Fallback for non-JSON lines printed by CLI, show them instantly
+                    self?.onToolUse?("Thinking", ["summary": String(line.prefix(60))])
+                }
+            }
         ) { [weak self] status, stdout, stderr in
             guard let self else { return }
             if let configURL {
