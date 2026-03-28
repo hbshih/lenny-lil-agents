@@ -11,7 +11,7 @@ extension ClaudeSession {
 
         let instructions = buildInstructions(for: expert)
         var payload: [String: Any] = [
-            "model": Constants.openAIModel,
+            "model": selectedOpenAIModel(),
             "instructions": instructions,
             "input": input
         ]

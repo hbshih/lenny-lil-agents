@@ -61,9 +61,7 @@ extension ClaudeSession {
     }
 
     func parseStructuredAssistantPayload(from outputText: String) -> (answerMarkdown: String, suggestedExperts: [String], suggestExpertPrompt: Bool)? {
-        guard let jsonCandidate = extractStructuredJSONCandidate(from: outputText),
-              let data = jsonCandidate.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        guard let json = decodeStructuredAssistantJSONObject(from: outputText),
               let answerMarkdown = json["answer_markdown"] as? String else {
             return nil
         }
@@ -74,6 +72,44 @@ extension ClaudeSession {
 
         SessionDebugLogger.log("assistant", "parsed structured JSON assistant payload. suggestedExperts=\(suggestedExperts.joined(separator: ", ")) prompt=\(suggestExpertPrompt)")
         return (answerMarkdown, suggestedExperts, suggestExpertPrompt)
+    }
+
+    func decodeStructuredAssistantJSONObject(from outputText: String) -> [String: Any]? {
+        let normalized = outputText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let direct = decodeStructuredAssistantJSONObjectCandidate(normalized) {
+            return direct
+        }
+
+        if let jsonCandidate = extractStructuredJSONCandidate(from: normalized),
+           let decoded = decodeStructuredAssistantJSONObjectCandidate(jsonCandidate) {
+            return decoded
+        }
+
+        return nil
+    }
+
+    private func decodeStructuredAssistantJSONObjectCandidate(_ candidate: String) -> [String: Any]? {
+        guard let data = candidate.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) else {
+            return nil
+        }
+
+        if let json = object as? [String: Any], json["answer_markdown"] is String {
+            return json
+        }
+
+        if let wrapped = object as? String {
+            let trimmed = wrapped.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let nested = decodeStructuredAssistantJSONObjectCandidate(trimmed) {
+                return nested
+            }
+            if let nestedCandidate = extractStructuredJSONCandidate(from: trimmed) {
+                return decodeStructuredAssistantJSONObjectCandidate(nestedCandidate)
+            }
+        }
+
+        return nil
     }
 
     func extractStructuredJSONCandidate(from outputText: String) -> String? {
@@ -203,4 +239,3 @@ extension ClaudeSession {
         return cleaned
     }
 }
-

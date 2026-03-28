@@ -3,7 +3,6 @@ import Foundation
 final class ClaudeSession {
     enum Constants {
         static let openAIEndpoint = URL(string: "https://api.openai.com/v1/responses")!
-        static let openAIModel = "gpt-5-nano"
         static let requestTimeout: TimeInterval = 120
         static let lennyMCPURL = "https://mcp.lennysdata.com/mcp"
         static let lennyMCPServerLabel = "lennysdata"
@@ -38,4 +37,18 @@ final class ClaudeSession {
 
     static var shellEnvironment: [String: String]?
     static var openAIKey: String?
+
+    func selectedClaudeModel() -> String? {
+        let model = AppSettings.preferredClaudeModel
+        return model == .default ? nil : model.rawValue
+    }
+
+    func selectedCodexModel() -> String? {
+        let model = AppSettings.preferredCodexModel
+        return model == .default ? nil : model.rawValue
+    }
+
+    func selectedOpenAIModel() -> String {
+        AppSettings.preferredOpenAIModel.rawValue
+    }
 }

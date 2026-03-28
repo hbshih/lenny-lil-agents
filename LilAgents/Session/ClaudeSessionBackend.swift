@@ -117,6 +117,9 @@ extension ClaudeSession {
         [
             AppSettings.archiveAccessMode.rawValue,
             AppSettings.preferredTransport.rawValue,
+            AppSettings.preferredClaudeModel.rawValue,
+            AppSettings.preferredCodexModel.rawValue,
+            AppSettings.preferredOpenAIModel.rawValue,
             (environment["ANTHROPIC_API_KEY"]?.isEmpty == false) ? "anthropic:1" : "anthropic:0",
             (environment["OPENAI_API_KEY"]?.isEmpty == false) ? "openai:1" : "openai:0",
             (AppSettings.officialLennyMCPToken?.isEmpty == false) ? "mcp-settings:1" : "mcp-settings:0",
@@ -247,11 +250,13 @@ extension ClaudeSession {
             : "official Lenny MCP"
         switch backend {
         case .claudeCodeCLI:
-            return "Using Claude Code CLI with \(archiveLabel)"
+            let modelSuffix = selectedClaudeModel().map { " • model: \($0)" } ?? ""
+            return "Using Claude Code CLI with \(archiveLabel)\(modelSuffix)"
         case .codexCLI:
-            return "Using Codex CLI with \(archiveLabel)"
+            let modelSuffix = selectedCodexModel().map { " • model: \($0)" } ?? ""
+            return "Using Codex CLI with \(archiveLabel)\(modelSuffix)"
         case .openAIResponsesAPI:
-            return "Using direct OpenAI Responses API with \(archiveLabel)"
+            return "Using direct OpenAI Responses API with \(archiveLabel) • model: \(selectedOpenAIModel())"
         }
     }
 

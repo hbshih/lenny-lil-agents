@@ -45,6 +45,10 @@ extension ClaudeSession {
             "dontAsk"
         ]
 
+        if let model = selectedClaudeModel() {
+            args.append(contentsOf: ["--model", model])
+        }
+
         if useOfficialMCP {
             args.append(contentsOf: ["--allowedTools", "mcp__\(Constants.lennyMCPServerLabel)__*"])
             if let configURL {
@@ -133,6 +137,10 @@ extension ClaudeSession {
             "-o",
             outputURL.path
         ]
+
+        if let model = selectedCodexModel() {
+            args.append(contentsOf: ["-m", model])
+        }
 
         if useBundledMCP, officialMCPToken(from: environment) != nil {
             args.append(contentsOf: [

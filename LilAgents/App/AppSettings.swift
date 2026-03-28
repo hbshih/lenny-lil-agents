@@ -1,6 +1,64 @@
 import Foundation
 
 enum AppSettings {
+    enum ClaudeModel: String, CaseIterable {
+        case `default`
+        case sonnet
+        case opus
+        case haiku
+        case sonnet1M = "sonnet[1m]"
+        case opusPlan = "opusplan"
+
+        var label: String {
+            switch self {
+            case .default: return "Claude default"
+            case .sonnet: return "Sonnet"
+            case .opus: return "Opus"
+            case .haiku: return "Haiku"
+            case .sonnet1M: return "Sonnet 1M"
+            case .opusPlan: return "Opus Plan"
+            }
+        }
+    }
+
+    enum OpenAIModel: String, CaseIterable {
+        case gpt5 = "gpt-5"
+        case gpt5Mini = "gpt-5-mini"
+        case gpt5Nano = "gpt-5-nano"
+        case o3 = "o3"
+        case o3Mini = "o3-mini"
+
+        var label: String {
+            switch self {
+            case .gpt5: return "GPT-5"
+            case .gpt5Mini: return "GPT-5 mini"
+            case .gpt5Nano: return "GPT-5 nano"
+            case .o3: return "o3"
+            case .o3Mini: return "o3-mini"
+            }
+        }
+    }
+
+    enum CodexModel: String, CaseIterable {
+        case `default`
+        case gpt5 = "gpt-5"
+        case gpt5Mini = "gpt-5-mini"
+        case gpt5Nano = "gpt-5-nano"
+        case o3 = "o3"
+        case o3Mini = "o3-mini"
+
+        var label: String {
+            switch self {
+            case .default: return "Codex default"
+            case .gpt5: return "GPT-5"
+            case .gpt5Mini: return "GPT-5 mini"
+            case .gpt5Nano: return "GPT-5 nano"
+            case .o3: return "o3"
+            case .o3Mini: return "o3-mini"
+            }
+        }
+    }
+
     enum PreferredTransport: String {
         case automatic
         case claudeCode
@@ -17,6 +75,9 @@ enum AppSettings {
     static let archiveAccessModeKey = "archiveAccessMode"
     static let officialLennyMCPTokenKey = "officialLennyMCPToken"
     static let debugLoggingEnabledKey = "debugLoggingEnabled"
+    static let preferredClaudeModelKey = "preferredClaudeModel"
+    static let preferredCodexModelKey = "preferredCodexModel"
+    static let preferredOpenAIModelKey = "preferredOpenAIModel"
 
     static var preferredTransport: PreferredTransport {
         get {
@@ -64,6 +125,36 @@ enum AppSettings {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: debugLoggingEnabledKey)
+        }
+    }
+
+    static var preferredClaudeModel: ClaudeModel {
+        get {
+            let rawValue = UserDefaults.standard.string(forKey: preferredClaudeModelKey) ?? ClaudeModel.default.rawValue
+            return ClaudeModel(rawValue: rawValue) ?? .default
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: preferredClaudeModelKey)
+        }
+    }
+
+    static var preferredCodexModel: CodexModel {
+        get {
+            let rawValue = UserDefaults.standard.string(forKey: preferredCodexModelKey) ?? CodexModel.default.rawValue
+            return CodexModel(rawValue: rawValue) ?? .default
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: preferredCodexModelKey)
+        }
+    }
+
+    static var preferredOpenAIModel: OpenAIModel {
+        get {
+            let rawValue = UserDefaults.standard.string(forKey: preferredOpenAIModelKey) ?? OpenAIModel.gpt5Nano.rawValue
+            return OpenAIModel(rawValue: rawValue) ?? .gpt5Nano
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: preferredOpenAIModelKey)
         }
     }
 }

@@ -5,6 +5,9 @@ struct SettingsView: View {
     @AppStorage(AppSettings.archiveAccessModeKey) private var archiveAccessMode = AppSettings.ArchiveAccessMode.starterPack.rawValue
     @AppStorage(AppSettings.officialLennyMCPTokenKey) private var officialToken = ""
     @AppStorage(AppSettings.debugLoggingEnabledKey) private var debugLoggingEnabled = true
+    @AppStorage(AppSettings.preferredClaudeModelKey) private var preferredClaudeModel = AppSettings.ClaudeModel.default.rawValue
+    @AppStorage(AppSettings.preferredCodexModelKey) private var preferredCodexModel = AppSettings.CodexModel.default.rawValue
+    @AppStorage(AppSettings.preferredOpenAIModelKey) private var preferredOpenAIModel = AppSettings.OpenAIModel.gpt5Nano.rawValue
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -28,6 +31,39 @@ struct SettingsView: View {
 
                     HStack(alignment: .center) {
                         Label(transportStatusText, systemImage: transportStatusIcon)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
+                    }
+                }
+
+                SettingsSection(icon: "slider.horizontal.3", title: "Models") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        LabeledModelPicker(
+                            title: "Claude Code",
+                            selection: $preferredClaudeModel,
+                            options: AppSettings.ClaudeModel.allCases.map { ($0.label, $0.rawValue) }
+                        )
+
+                        LabeledModelPicker(
+                            title: "Codex",
+                            selection: $preferredCodexModel,
+                            options: AppSettings.CodexModel.allCases.map { ($0.label, $0.rawValue) }
+                        )
+
+                        LabeledModelPicker(
+                            title: "OpenAI API",
+                            selection: $preferredOpenAIModel,
+                            options: AppSettings.OpenAIModel.allCases.map { ($0.label, $0.rawValue) }
+                        )
+                    }
+
+                    Text("Claude and Codex use their CLI model flags when selected. OpenAI API uses the exact model shown here.")
+                        .settingsCaption()
+
+                    HStack(alignment: .center) {
+                        Label(activeModelStatusText, systemImage: "cpu")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -124,6 +160,24 @@ struct SettingsView: View {
         }
     }
 
+    private var activeModelStatusText: String {
+        let transport = AppSettings.PreferredTransport(rawValue: preferredTransport) ?? .automatic
+        let claude = AppSettings.ClaudeModel(rawValue: preferredClaudeModel)?.label ?? "Claude default"
+        let codex = AppSettings.CodexModel(rawValue: preferredCodexModel)?.label ?? "Codex default"
+        let openAI = AppSettings.OpenAIModel(rawValue: preferredOpenAIModel)?.label ?? "GPT-5 nano"
+
+        switch transport {
+        case .automatic:
+            return "Auto mode will use Claude: \(claude), Codex: \(codex), OpenAI API: \(openAI)."
+        case .claudeCode:
+            return "Claude Code will use: \(claude)."
+        case .codex:
+            return "Codex will use: \(codex)."
+        case .openAIAPI:
+            return "OpenAI API will use: \(openAI)."
+        }
+    }
+
     private var transportStatusIcon: String {
         switch AppSettings.PreferredTransport(rawValue: preferredTransport) ?? .automatic {
         case .automatic:
@@ -134,6 +188,29 @@ struct SettingsView: View {
             return "terminal.fill"
         case .openAIAPI:
             return "network.badge.shield.half.filled"
+        }
+    }
+}
+
+private struct LabeledModelPicker: View {
+    let title: String
+    @Binding var selection: String
+    let options: [(label: String, value: String)]
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .frame(width: 100, alignment: .leading)
+
+            Picker(title, selection: $selection) {
+                ForEach(options, id: \.value) { option in
+                    Text(option.label).tag(option.value)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
