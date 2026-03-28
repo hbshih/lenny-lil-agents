@@ -103,6 +103,16 @@ extension WalkerCharacter {
             if let session = claudeSession {
                 terminalView?.replayHistory(session.history(for: expert))
             }
+            if expert == nil {
+                let suggestions = controller?.suggestedExperts ?? []
+                if suggestions.isEmpty {
+                    terminalView?.hideExpertSuggestions()
+                } else {
+                    terminalView?.setExpertSuggestionsCollapsed(suggestions)
+                }
+            } else {
+                terminalView?.hideExpertSuggestions()
+            }
         }
     }
 

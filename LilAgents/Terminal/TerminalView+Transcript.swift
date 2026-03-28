@@ -230,11 +230,12 @@ extension TerminalView {
 
     func appendToolUse(toolName: String, summary: String) {
         endStreaming()
-        setLiveStatus(summary.isEmpty ? toolName : summary, isBusy: true, isError: false)
+        let statusText = summary.isEmpty ? toolName : "\(toolName): \(summary)"
+        setLiveStatus(statusText, isBusy: true, isError: false)
     }
 
     func appendToolResult(summary: String, isError: Bool) {
-        setLiveStatus(summary, isBusy: false, isError: isError)
+        setLiveStatus(summary, isBusy: !isError, isError: isError)
     }
 
     func replayHistory(_ messages: [ClaudeSession.Message]) {

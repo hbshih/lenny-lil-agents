@@ -7,6 +7,7 @@ class TerminalView: NSView {
     let inputField = NSTextField()
     let liveStatusContainer = NSView()
     let liveStatusSpinner = NSProgressIndicator()
+    let liveStatusAvatarView = NSImageView()
     let liveStatusLabel = NSTextField(labelWithString: "")
     let attachmentLabel = NSTextField(labelWithString: "")
     let expertSuggestionContainer = NSView()
@@ -27,6 +28,11 @@ class TerminalView: NSView {
     var pendingAttachments: [SessionAttachment] = []
     var expertSuggestionTargets: [String: ResponderExpert] = [:]
     var deferredExpertSuggestions: [ResponderExpert] = []
+    var currentExpertSuggestions: [ResponderExpert] = []
+    var expertSuggestionsCollapsed = false
+    var liveStatusAvatarTimer: Timer?
+    var liveStatusAvatarPaths: [String] = []
+    var liveStatusAvatarIndex = 0
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -36,6 +42,10 @@ class TerminalView: NSView {
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupViews()
+    }
+
+    deinit {
+        liveStatusAvatarTimer?.invalidate()
     }
 
     var theme: PopoverTheme {

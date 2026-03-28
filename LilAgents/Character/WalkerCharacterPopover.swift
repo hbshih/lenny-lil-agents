@@ -123,10 +123,14 @@ extension WalkerCharacter {
             completionBubbleExpiry = CACurrentMediaTime() + 3.0
             showBubble(text: currentPhrase, isCompletion: true)
         } else if isClaudeBusy {
-            currentPhrase = ""
-            lastPhraseUpdate = 0
-            updateThinkingPhrase()
-            showBubble(text: currentPhrase, isCompletion: false)
+            if currentActivityStatus.isEmpty {
+                currentPhrase = ""
+                lastPhraseUpdate = 0
+                updateThinkingPhrase()
+                showBubble(text: currentPhrase, isCompletion: false)
+            } else {
+                hideBubble()
+            }
         } else {
             setFacing(.front)
         }

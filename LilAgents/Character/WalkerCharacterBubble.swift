@@ -21,6 +21,11 @@ extension WalkerCharacter {
     static var soundsEnabled = true
 
     func updateThinkingBubble() {
+        if isClaudeBusy && !currentActivityStatus.isEmpty {
+            hideBubble()
+            return
+        }
+
         let now = CACurrentMediaTime()
 
         if showingCompletion {

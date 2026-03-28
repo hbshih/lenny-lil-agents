@@ -8,6 +8,7 @@ class LilAgentsController {
     private static let onboardingKey = "hasCompletedOnboarding"
     private let maxVisibleGuestAvatars = 3
     private var currentExperts: [ResponderExpert] = []
+    var suggestedExperts: [ResponderExpert] { Array(currentExperts.prefix(maxVisibleGuestAvatars)) }
     var onExpertsChanged: (([ResponderExpert]) -> Void)?
     var onFocusedExpertChanged: ((ResponderExpert?) -> Void)?
     private(set) var focusedExpert: ResponderExpert?

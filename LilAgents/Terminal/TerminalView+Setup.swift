@@ -168,6 +168,17 @@ extension TerminalView {
         liveStatusSpinner.isHidden = true
         composerPanel.addSubview(liveStatusSpinner)
 
+        liveStatusAvatarView.frame = NSRect(x: 16, y: (Layout.composerHeight - 26) / 2, width: 26, height: 26)
+        liveStatusAvatarView.wantsLayer = true
+        liveStatusAvatarView.layer?.cornerRadius = 13
+        liveStatusAvatarView.layer?.masksToBounds = true
+        liveStatusAvatarView.layer?.borderWidth = 1
+        liveStatusAvatarView.layer?.borderColor = t.separatorColor.withAlphaComponent(0.35).cgColor
+        liveStatusAvatarView.imageAlignment = .alignCenter
+        liveStatusAvatarView.imageScaling = .scaleProportionallyUpOrDown
+        liveStatusAvatarView.isHidden = true
+        composerPanel.addSubview(liveStatusAvatarView)
+
         liveStatusLabel.isEditable = false
         liveStatusLabel.drawsBackground = false
         liveStatusLabel.isBordered = false
@@ -175,7 +186,7 @@ extension TerminalView {
         liveStatusLabel.textColor = t.accentColor
         liveStatusLabel.lineBreakMode = .byTruncatingTail
         liveStatusLabel.isHidden = true
-        liveStatusLabel.frame = NSRect(x: 46, y: (Layout.composerHeight - 16) / 2 - 1, width: composerPanel.frame.width - 60, height: 16)
+        liveStatusLabel.frame = NSRect(x: 52, y: (Layout.composerHeight - 16) / 2 - 1, width: composerPanel.frame.width - 66, height: 16)
         liveStatusLabel.autoresizingMask = [.width]
         composerPanel.addSubview(liveStatusLabel)
 
