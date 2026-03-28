@@ -172,9 +172,9 @@ extension WalkerCharacter {
         var x = charFrame.midX - popoverSize.width / 2
         let y = charFrame.maxY - 10
 
-        let screenFrame = screen.frame
-        x = max(screenFrame.minX + 4, min(x, screenFrame.maxX - popoverSize.width - 4))
-        let clampedY = min(y, screenFrame.maxY - popoverSize.height - 4)
+        let visibleFrame = screen.visibleFrame
+        x = max(visibleFrame.minX + 4, min(x, visibleFrame.maxX - popoverSize.width - 4))
+        let clampedY = min(y, visibleFrame.maxY - popoverSize.height - 4)
 
         popover.setFrameOrigin(NSPoint(x: x, y: clampedY))
     }

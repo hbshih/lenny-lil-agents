@@ -115,8 +115,59 @@ extension WalkerCharacter {
         }
     }
 
+    @objc func expandToggleTapped() {
+        guard let popover = popoverWindow, let screen = NSScreen.main else { return }
+        isPopoverExpanded = !isPopoverExpanded
+
+        let newHeight: CGFloat
+        if isPopoverExpanded {
+            let charFrame = window.frame
+            let popoverBottomY = charFrame.maxY - 10
+            let maxAvailable = screen.visibleFrame.maxY - 4 - popoverBottomY
+            newHeight = min(max(maxAvailable, 500), screen.visibleFrame.height - 20)
+        } else {
+            newHeight = WalkerCharacter.defaultPopoverHeight
+        }
+
+        let currentFrame = popover.frame
+        let charFrame = window.frame
+        let desiredBottomY = charFrame.maxY - 10
+        let clampedBottomY = max(
+            screen.visibleFrame.minY + 4,
+            min(desiredBottomY, screen.visibleFrame.maxY - newHeight - 4)
+        )
+        let newFrame = NSRect(x: currentFrame.minX, y: clampedBottomY, width: currentFrame.width, height: newHeight)
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.28
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            popover.animator().setFrame(newFrame, display: true)
+        }
+
+        let symbolName = isPopoverExpanded
+            ? "arrow.down.right.and.arrow.up.left"
+            : "arrow.up.left.and.arrow.down.right"
+        if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
+            let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            popoverExpandButton?.image = img.withSymbolConfiguration(config)
+        }
+    }
+
     func closePopover() {
         guard isIdleForPopover else { return }
+
+        isPopoverExpanded = false
+        if let btn = popoverExpandButton,
+           let img = NSImage(systemSymbolName: "arrow.up.left.and.arrow.down.right", accessibilityDescription: nil) {
+            let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            btn.image = img.withSymbolConfiguration(config)
+        }
+        // Reset window to default height before hiding
+        if let popover = popoverWindow, popover.frame.height != WalkerCharacter.defaultPopoverHeight {
+            let f = popover.frame
+            let newFrame = NSRect(x: f.minX, y: f.minY, width: f.width, height: WalkerCharacter.defaultPopoverHeight)
+            popover.setFrame(newFrame, display: false)
+        }
 
         popoverWindow?.orderOut(nil)
         removeEventMonitors()

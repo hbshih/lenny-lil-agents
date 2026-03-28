@@ -71,8 +71,28 @@ extension WalkerCharacter {
         titleBar.addSubview(subtitle)
         popoverSubtitleLabel = subtitle
 
+        let expandButtonSize: CGFloat = 28
+        let expandButtonX = popoverWidth - 16 - expandButtonSize
+        let expandButton = HoverButton(title: "", target: self, action: #selector(expandToggleTapped))
+        expandButton.frame = NSRect(x: expandButtonX, y: (titleBarHeight - expandButtonSize) / 2, width: expandButtonSize, height: expandButtonSize)
+        expandButton.isBordered = false
+        expandButton.wantsLayer = true
+        expandButton.normalBg = t.separatorColor.withAlphaComponent(0.10).cgColor
+        expandButton.hoverBg = t.separatorColor.withAlphaComponent(0.22).cgColor
+        expandButton.layer?.backgroundColor = t.separatorColor.withAlphaComponent(0.10).cgColor
+        expandButton.layer?.cornerRadius = expandButtonSize / 2
+        if let img = NSImage(systemSymbolName: "arrow.up.left.and.arrow.down.right", accessibilityDescription: "Expand") {
+            let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            expandButton.image = img.withSymbolConfiguration(config)
+        }
+        expandButton.imageScaling = .scaleProportionallyDown
+        expandButton.contentTintColor = t.textDim
+        titleBar.addSubview(expandButton)
+        popoverExpandButton = expandButton
+
         let returnPill = HoverButton(title: "", target: self, action: #selector(returnToGenieTapped))
-        returnPill.frame = NSRect(x: popoverWidth - 142, y: 14, width: 118, height: 26)
+        let returnPillWidth: CGFloat = 118
+        returnPill.frame = NSRect(x: expandButtonX - 8 - returnPillWidth, y: 14, width: returnPillWidth, height: 26)
         returnPill.isBordered = false
         returnPill.wantsLayer = true
         returnPill.normalBg = t.inputBg.withAlphaComponent(0.90).cgColor
