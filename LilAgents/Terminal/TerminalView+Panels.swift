@@ -56,25 +56,35 @@ extension TerminalView {
             return
         }
 
-        liveStatusContainer.layer?.borderColor = (isError ? t.errorColor : t.separatorColor.withAlphaComponent(0.42)).cgColor
-        liveStatusContainer.layer?.backgroundColor = (isError ? t.errorColor.withAlphaComponent(0.08) : t.inputBg.withAlphaComponent(0.96)).cgColor
+        // Hide input area controls
+        inputField.isHidden = true
+        sendButton.isHidden = true
+        attachButton.isHidden = true
+
         liveStatusLabel.textColor = isError ? t.errorColor : (isBusy ? t.accentColor : t.successColor)
         liveStatusLabel.stringValue = text
-        setPanelVisibility(liveStatusContainer, hidden: false)
+        
+        liveStatusLabel.isHidden = false
+        liveStatusSpinner.isHidden = !isBusy
 
         if isBusy {
             liveStatusSpinner.startAnimation(nil)
         } else {
             liveStatusSpinner.stopAnimation(nil)
         }
-        relayoutPanels()
     }
 
     func clearLiveStatus() {
         liveStatusLabel.stringValue = ""
         liveStatusSpinner.stopAnimation(nil)
-        setPanelVisibility(liveStatusContainer, hidden: true)
-        relayoutPanels()
+        
+        liveStatusSpinner.isHidden = true
+        liveStatusLabel.isHidden = true
+        
+        // Show input area controls
+        inputField.isHidden = false
+        sendButton.isHidden = false
+        attachButton.isHidden = false
     }
 
     @objc func expertSuggestionButtonTapped(_ sender: NSButton) {

@@ -16,14 +16,6 @@ extension TerminalView {
         let width = frame.width - Layout.padding * 2
         let composerTop = Layout.bottomInset + Layout.composerHeight
 
-        liveStatusContainer.frame = NSRect(
-            x: Layout.padding,
-            y: frame.height - Layout.topInset - Layout.topControlHeight,
-            width: width,
-            height: Layout.topControlHeight
-        )
-        liveStatusLabel.frame = NSRect(x: 34, y: 7, width: liveStatusContainer.frame.width - 46, height: 16)
-
         var bottomCursor = composerTop
 
         if attachmentLabel.isHidden {
@@ -47,7 +39,7 @@ extension TerminalView {
             bottomCursor = suggestionY + suggestionHeight
         }
 
-        let scrollTop = frame.height - Layout.topInset - (liveStatusContainer.isHidden ? 0 : Layout.topControlHeight + 8)
+        let scrollTop = frame.height - Layout.topInset
         let scrollY = bottomCursor + Layout.interSectionSpacing
         let scrollHeight = max(160, scrollTop - scrollY)
         scrollView.frame = NSRect(x: Layout.padding, y: scrollY, width: width, height: scrollHeight)

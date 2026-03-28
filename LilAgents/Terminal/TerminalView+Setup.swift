@@ -40,30 +40,7 @@ extension TerminalView {
         scrollView.documentView = transcriptContainer
         addSubview(scrollView)
 
-        liveStatusContainer.frame = NSRect(
-            x: Layout.padding,
-            y: frame.height - Layout.topInset - Layout.topControlHeight,
-            width: frame.width - Layout.padding * 2,
-            height: Layout.topControlHeight
-        )
-        liveStatusContainer.autoresizingMask = [.width, .minYMargin]
-        stylePanel(liveStatusContainer, background: t.inputBg.withAlphaComponent(0.92), border: t.separatorColor.withAlphaComponent(0.34), radius: Layout.topControlHeight / 2)
-        liveStatusContainer.alphaValue = 0
         liveStatusContainer.isHidden = true
-        addSubview(liveStatusContainer)
-
-        liveStatusSpinner.style = .spinning
-        liveStatusSpinner.controlSize = .small
-        liveStatusSpinner.frame = NSRect(x: 12, y: 8, width: 14, height: 14)
-        liveStatusSpinner.isDisplayedWhenStopped = false
-        liveStatusContainer.addSubview(liveStatusSpinner)
-
-        liveStatusLabel.frame = NSRect(x: 34, y: 7, width: liveStatusContainer.frame.width - 46, height: 16)
-        liveStatusLabel.autoresizingMask = [.width]
-        liveStatusLabel.font = NSFont.systemFont(ofSize: 11.5, weight: .medium)
-        liveStatusLabel.textColor = t.textDim
-        liveStatusLabel.lineBreakMode = .byTruncatingTail
-        liveStatusContainer.addSubview(liveStatusLabel)
 
         expertSuggestionContainer.frame = NSRect(
             x: Layout.padding,
@@ -183,6 +160,24 @@ extension TerminalView {
         inputField.target = self
         inputField.action = #selector(inputSubmitted)
         composerPanel.addSubview(inputField)
+
+        liveStatusSpinner.style = .spinning
+        liveStatusSpinner.controlSize = .small
+        liveStatusSpinner.frame = NSRect(x: 20, y: (Layout.composerHeight - 16) / 2, width: 16, height: 16)
+        liveStatusSpinner.isDisplayedWhenStopped = false
+        liveStatusSpinner.isHidden = true
+        composerPanel.addSubview(liveStatusSpinner)
+
+        liveStatusLabel.isEditable = false
+        liveStatusLabel.drawsBackground = false
+        liveStatusLabel.isBordered = false
+        liveStatusLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        liveStatusLabel.textColor = t.accentColor
+        liveStatusLabel.lineBreakMode = .byTruncatingTail
+        liveStatusLabel.isHidden = true
+        liveStatusLabel.frame = NSRect(x: 46, y: (Layout.composerHeight - 16) / 2 - 1, width: composerPanel.frame.width - 60, height: 16)
+        liveStatusLabel.autoresizingMask = [.width]
+        composerPanel.addSubview(liveStatusLabel)
 
         registerForDraggedTypes([.fileURL])
         relayoutPanels()

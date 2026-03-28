@@ -27,7 +27,7 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
 
         headerLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         headerLabel.textColor = isUser ? theme.textDim : theme.accentColor
-        headerLabel.alignment = isUser ? .right : .left
+        headerLabel.alignment = .left
         headerLabel.translatesAutoresizingMaskIntoConstraints = false
         headerLabel.isEditable = false
         headerLabel.isBordered = false
@@ -64,8 +64,8 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
 
         NSLayoutConstraint.activate([
             headerLabel.topAnchor.constraint(equalTo: topAnchor),
-            headerLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
-            headerLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            headerLabel.leadingAnchor.constraint(equalTo: bubbleBackground.leadingAnchor, constant: 4),
+            headerLabel.trailingAnchor.constraint(equalTo: bubbleBackground.trailingAnchor, constant: -4),
 
             bubbleBackground.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 4),
             bubbleBackground.bottomAnchor.constraint(equalTo: bottomAnchor),
