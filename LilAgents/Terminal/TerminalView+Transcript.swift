@@ -14,7 +14,7 @@ private func pngAvatarPath(for path: String) -> String? {
         return nil
     }
 
-    let cacheDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("lil-agents-avatar-cache", isDirectory: true)
+    let cacheDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("lenny-avatar-cache", isDirectory: true)
     try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
     let fileName = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent + ".png"

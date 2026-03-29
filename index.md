@@ -1,18 +1,21 @@
-# lil-agents Code Index
+# Lenny Code Index
 
 This document is a fast map of the current codebase: what the app does, where the main logic lives, and how the files relate to each other.
 
 ## What This App Is
 
-`lil-agents` is a macOS accessory app that places a character above the Dock and turns that character into a conversational entry point.
+`Lenny` is a macOS accessory app that places a character above the Dock and turns that character into a conversational entry point.
 
 Current behavior:
 - The main character is Lenny.
+- The shipped app product now builds as `Lenny.app`.
+- The current bundle identifier is `com.hbshih.lenny`.
 - User questions can run through Claude Code CLI, Codex CLI, or a direct OpenAI Responses API fallback.
 - Archive access has two modes:
   - `starterPack`: bundled local free archive search under `LilAgents/StarterArchive`
   - `officialMCP`: the official Lenny MCP path, using the user's own CLI setup or bearer token
 - The app can surface relevant experts after a Lenny response completes.
+- Sparkle is still enabled, but the feed now points at this fork's `appcast.xml` instead of the original upstream release feed.
 - Expert switching is no longer automatic.
 - Welcome pills live in a separate bottom suggestion panel above the composer.
 - Expert suggestions now render inline in the transcript, per Lenny reply, with collapsed and expanded states preserved for older replies.
@@ -47,7 +50,7 @@ LilAgents/
   Persistent app settings for archive mode, preferred transport, model selection labels, official MCP token override, and debug logging.
 
 - `LilAgents/App/SettingsView.swift`
-  Settings UI for archive mode selection, transport preference, official MCP token entry, debug logging, and setup instructions.
+  Settings UI for archive mode selection, transport preference, official MCP token entry, debug logging, setup instructions, and upstream project credits.
 
 ### Main character system
 - `LilAgents/Character/WalkerCharacter.swift`
@@ -117,6 +120,16 @@ LilAgents/
 - `LilAgents/Session/ClaudeSessionSupport.swift`
   Low-level helpers: `runProcess` (subprocess execution), `imageDataURL` (base64 image encoding), `documentText` (PDF/RTF/text extraction), and document truncation.
 
+### Release / metadata
+- `LilAgents/Info.plist`
+  Accessory-app configuration plus Sparkle feed URL and public update key.
+
+- `appcast.xml`
+  Sparkle release feed for this fork. Add new signed release items here when publishing updates.
+
+- `lil-agents.xcodeproj/project.pbxproj`
+  Product name, bundle identifier, display name, asset-catalog wiring, and target-level build settings.
+
 - `LilAgents/Session/LocalArchive.swift`
   Local starter-pack indexing and retrieval over the bundled free newsletter and podcast subset.
 
@@ -171,6 +184,10 @@ LilAgents/
   Sound effects.
 
 - `LilAgents/Assets.xcassets/`
+  App icon and menu bar icon asset catalogs.
+
+- `tools/generate_lenny_icons.swift`
+  Local helper script used to regenerate the current app icon and menu bar icon PNG assets.
   Standard app asset catalog resources.
 
 ### Legacy assets still present

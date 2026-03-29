@@ -30,7 +30,7 @@ extension ClaudeSession {
 
         var finalStdout = ""
         var finalStderr = ""
-        let queue = DispatchQueue(label: "lil-agents.runProcess", attributes: .concurrent)
+        let queue = DispatchQueue(label: "lenny.runProcess", attributes: .concurrent)
 
         func processLines(_ string: String) {
             if let onLineReceived {

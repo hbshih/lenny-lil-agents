@@ -4,7 +4,7 @@ enum SessionDebugLogger {
     static func log(_ category: String, _ message: String) {
         guard AppSettings.debugLoggingEnabled else { return }
         let timestamp = ISO8601DateFormatter().string(from: Date())
-        print("[LilAgents][\(timestamp)][\(category)] \(redactSensitiveValues(in: message))")
+        print("[Lenny][\(timestamp)][\(category)] \(redactSensitiveValues(in: message))")
     }
 
     static func logMultiline(_ category: String, header: String, body: String) {

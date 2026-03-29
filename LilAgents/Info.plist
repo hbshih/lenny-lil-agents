@@ -5,7 +5,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>SUFeedURL</key>
-    <string>https://lilagents.xyz/appcast.xml</string>
+    <string>https://raw.githubusercontent.com/hbshih/lenny-lil-agents/main/appcast.xml</string>
     <key>SUPublicEDKey</key>
     <string>8QOCrY3j4crgz4iR5lmxyv+rA5vnqK6Qtd1XheMllP8=</string>
     <key>SUEnableAutomaticChecks</key>

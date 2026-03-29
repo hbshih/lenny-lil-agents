@@ -1,16 +1,16 @@
-# lil agents
+# Lenny
 
-![lil agents](hero-thumbnail.png)
+![Lenny](hero-thumbnail.png)
 
-Tiny AI companions that live on your macOS dock.
+Tiny AI guidance that lives on your macOS dock.
 
-**Bruce** and **Jazz** walk back and forth above your dock. Click one to open an AI terminal grounded in Lenny’s archive. They walk, they think, they vibe.
+Lenny sits above your Dock so you can ask product, growth, pricing, startup, and AI questions without leaving your flow. Click the character to open a chat grounded in Lenny's archive, then branch into specialist follow-ups when they help.
 
 ## features
 
 - Animated characters rendered from transparent HEVC video
 - Click a character to chat in a themed popover terminal
-- Four visual themes: Peach, Midnight, Cloud, Moss
+- Warm, focused popover UI with inline expert follow-ups
 - Thinking bubbles with playful phrases while Claude works
 - Sound effects on completion
 - First-run onboarding with a friendly welcome
@@ -27,13 +27,17 @@ Open `lil-agents.xcodeproj` in Xcode and hit run.
 
 ## privacy
 
-lil agents runs on your Mac and does not send personal data anywhere except through the AI transport you configure.
+Lenny runs on your Mac and does not send personal data anywhere except through the AI transport you configure.
 
 - **Your data stays local by default.** The app plays bundled animations and calculates your dock size to position the characters. No user account, analytics, or separate app database is involved.
 - **AI transport.** Conversations run through one of these paths, in order: Claude Code CLI, Codex CLI, or the direct OpenAI Responses API fallback. Any data sent to Anthropic or OpenAI is governed by their terms and privacy policy.
 - **Archive access.** The app connects the selected transport to Lenny’s MCP server. A bundled free archive token is used by default, and paid Lenny members can override it in Settings or with `LENNYSDATA_MCP_AUTH_TOKEN`.
 - **No accounts.** No login, no user database, no analytics in the app.
-- **Updates.** lil agents uses Sparkle to check for updates, which sends your app version and macOS version. Nothing else.
+- **Updates.** Lenny uses Sparkle to check for updates, which sends your app version and macOS version. Nothing else.
+
+## credits
+
+This fork builds on the original `lil agents` project by Ryan Stephen. See [LICENSE](LICENSE) for the original license and attribution.
 
 ## license
 

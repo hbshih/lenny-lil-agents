@@ -128,6 +128,14 @@ struct SettingsView: View {
                     Text("Includes backend selection, archive mode, MCP setup, CLI arguments, and parsed responses. Sensitive tokens are redacted.")
                         .settingsCaption()
                 }
+
+                SettingsSection(icon: "person.text.rectangle.fill", title: "Credits") {
+                    Text("This app is a fork of Ryan Stephen’s original lil agents project. The original concept and code remain credited under the MIT License.")
+                        .settingsCaption()
+
+                    Text("Before shipping updates from this fork, publish your signed Sparkle releases to this repository and replace the public update key in `LilAgents/Info.plist` with your own.")
+                        .settingsCaption()
+                }
             }
             .padding(16)
         }

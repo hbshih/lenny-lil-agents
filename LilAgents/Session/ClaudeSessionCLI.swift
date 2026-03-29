@@ -14,7 +14,7 @@ extension ClaudeSession {
         var configURL: URL?
 
         if useOfficialMCP, let token = officialMCPToken {
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("lil-agents-claude-mcp-\(UUID().uuidString).json")
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("lenny-claude-mcp-\(UUID().uuidString).json")
             let config: [String: Any] = [
                 "mcpServers": [
                     Constants.lennyMCPServerLabel: [
@@ -118,7 +118,7 @@ extension ClaudeSession {
         appendHistory(Message(role: .toolUse, text: "Planning: \(planningSummary)"), to: conversationKey)
 
         let prompt = buildConversationPrompt(message: message, attachments: attachments, expert: expert, conversationKey: conversationKey, archiveContext: archiveContext, expectMCP: useBundledMCP)
-        let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("lil-agents-codex-last-message-\(UUID().uuidString).md")
+        let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("lenny-codex-last-message-\(UUID().uuidString).md")
         var runtimeEnvironment = environment
         if let token = officialMCPToken(from: environment) {
             runtimeEnvironment[Constants.lennyMCPAuthEnvVar] = token
