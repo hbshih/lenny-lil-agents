@@ -83,6 +83,10 @@ extension WalkerCharacter {
             self?.terminalView?.appendError("Archive session ended.")
         }
 
+        session.onWorkspaceAccessRequired = { [weak self] prompt in
+            self?.terminalView?.appendWorkspacePermissionPrompt(prompt)
+        }
+
         session.onExpertsUpdated = { [weak self] experts in
             guard let self else { return }
             self.terminalView?.deferredExpertSuggestions = experts

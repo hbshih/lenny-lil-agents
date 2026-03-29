@@ -201,6 +201,9 @@ extension WalkerCharacter {
         terminal.onCloseRequested = { [weak self] in
             self?.closePopoverFromButton()
         }
+        terminal.onRequestWorkspaceAccess = { [weak self] in
+            self?.requestWorkspaceFolderAccessFromChat()
+        }
         terminal.setReturnToLennyVisible(false)
         container.addSubview(terminal)
 
@@ -209,5 +212,19 @@ extension WalkerCharacter {
         terminalView = terminal
         refreshPopoverHeader()
         syncPopoverPinState()
+    }
+
+    func requestWorkspaceFolderAccessFromChat() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Grant Access"
+        panel.message = "Choose a workspace folder so Claude Code and Codex can work with local files."
+        panel.directoryURL = AppSettings.workspaceFolderURL
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        AppSettings.setWorkspaceFolderURL(url)
+        terminalView?.appendToolResult(summary: "Granted workspace access to \(url.path). You can now resend your request.", isError: false)
     }
 }

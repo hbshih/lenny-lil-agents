@@ -78,6 +78,7 @@ enum AppSettings {
     static let preferredClaudeModelKey = "preferredClaudeModel"
     static let preferredCodexModelKey = "preferredCodexModel"
     static let preferredOpenAIModelKey = "preferredOpenAIModel"
+    static let workspaceFolderBookmarkKey = "workspaceFolderBookmark"
 
     static var preferredTransport: PreferredTransport {
         get {
@@ -164,5 +165,46 @@ enum AppSettings {
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: preferredOpenAIModelKey)
         }
+    }
+
+    static var workspaceFolderURL: URL? {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: workspaceFolderBookmarkKey) else {
+            return nil
+        }
+
+        var stale = false
+        guard let resolvedURL = try? URL(
+            resolvingBookmarkData: bookmarkData,
+            options: [.withSecurityScope],
+            relativeTo: nil,
+            bookmarkDataIsStale: &stale
+        ) else {
+            return nil
+        }
+
+        if stale {
+            setWorkspaceFolderURL(resolvedURL)
+        }
+
+        return resolvedURL
+    }
+
+    static var hasWorkspaceFolderAccess: Bool {
+        workspaceFolderURL != nil
+    }
+
+    static func setWorkspaceFolderURL(_ url: URL) {
+        guard let bookmarkData = try? url.bookmarkData(
+            options: [.withSecurityScope],
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        ) else {
+            return
+        }
+        UserDefaults.standard.set(bookmarkData, forKey: workspaceFolderBookmarkKey)
+    }
+
+    static func clearWorkspaceFolderAccess() {
+        UserDefaults.standard.removeObject(forKey: workspaceFolderBookmarkKey)
     }
 }

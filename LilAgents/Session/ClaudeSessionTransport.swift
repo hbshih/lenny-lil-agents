@@ -2,7 +2,7 @@ import Foundation
 
 extension ClaudeSession {
     func preferredWorkingDirectoryURL() -> URL {
-        FileManager.default.homeDirectoryForCurrentUser
+        AppSettings.workspaceFolderURL ?? FileManager.default.homeDirectoryForCurrentUser
     }
 
     func start() {
@@ -51,6 +51,17 @@ extension ClaudeSession {
             let status = self.backendStatusMessage(for: backend)
             self.onToolResult?(status, false)
             self.appendHistory(Message(role: .toolResult, text: status), to: conversationKey)
+
+            if self.requiresWorkspaceAccessPrompt(
+                message: message,
+                attachments: attachments,
+                backend: backend
+            ) {
+                let prompt = "To work with local code or files, please grant a workspace folder first."
+                self.onWorkspaceAccessRequired?(prompt)
+                self.failTurn("I need workspace permission before I can run local file actions. Use the “Grant Folder Access” button in chat, then resend your request.", conversationKey: conversationKey)
+                return
+            }
 
             let archiveMode = AppSettings.effectiveArchiveAccessMode
             if archiveMode == .starterPack {
@@ -159,6 +170,24 @@ extension ClaudeSession {
                 )
             }
         }
+    }
+
+    func requiresWorkspaceAccessPrompt(message: String, attachments: [SessionAttachment], backend: Backend) -> Bool {
+        guard AppSettings.workspaceFolderURL == nil else { return false }
+        guard attachments.isEmpty else { return false }
+        switch backend {
+        case .openAIResponsesAPI:
+            return false
+        case .claudeCodeCLI, .codexCLI:
+            break
+        }
+
+        let lowered = message.lowercased()
+        let codingHints = [
+            "code", "repo", "repository", "project", "file", "folder", "search", "find",
+            "edit", "fix", "debug", "implement", "refactor", "test", "run", "build"
+        ]
+        return codingHints.contains(where: { lowered.contains($0) })
     }
 
     func terminate() {

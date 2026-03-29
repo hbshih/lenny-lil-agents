@@ -27,6 +27,7 @@ class TerminalView: NSView {
     var onEditExpertSuggestion: ((UUID) -> Void)?
     var onTogglePinned: (() -> Void)?
     var onCloseRequested: (() -> Void)?
+    var onRequestWorkspaceAccess: (() -> Void)?
 
     var characterColor: NSColor?
     var themeOverride: PopoverTheme?

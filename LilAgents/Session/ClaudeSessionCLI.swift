@@ -162,7 +162,7 @@ extension ClaudeSession {
             executablePath: executablePath,
             arguments: args,
             environment: runtimeEnvironment,
-            workingDirectory: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            workingDirectory: preferredWorkingDirectoryURL()
         ) { [weak self] status, stdout, stderr in
             guard let self else { return }
             defer { try? FileManager.default.removeItem(at: outputURL) }
