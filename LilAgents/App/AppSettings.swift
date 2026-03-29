@@ -116,12 +116,8 @@ enum AppSettings {
         }
     }
 
-    static var hasOfficialArchiveConnectionInSettings: Bool {
-        officialLennyMCPToken != nil
-    }
-
     static var effectiveArchiveAccessMode: ArchiveAccessMode {
-        hasOfficialArchiveConnectionInSettings ? .officialMCP : archiveAccessMode
+        archiveAccessMode
     }
 
     static var debugLoggingEnabled: Bool {
