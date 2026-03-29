@@ -35,6 +35,7 @@ final class ClaudeSession {
     var onTurnComplete: (() -> Void)?
     var onProcessExit: (() -> Void)?
     var onExpertsUpdated: (([ResponderExpert]) -> Void)?
+    var onWorkspaceAccessRequired: ((String) -> Void)?
 
     static var shellEnvironment: [String: String]?
     static var openAIKey: String?

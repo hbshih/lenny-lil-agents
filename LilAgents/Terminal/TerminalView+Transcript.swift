@@ -448,6 +448,104 @@ class CompactSuggestionView: NSView {
     }
 }
 
+class WorkspacePermissionCardView: NSView {
+    var onGrantTapped: (() -> Void)?
+    private let theme: PopoverTheme
+    private let message: String
+
+    init(theme: PopoverTheme, message: String) {
+        self.theme = theme
+        self.message = message
+        super.init(frame: .zero)
+        setupViews()
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setupViews() {
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+
+        let shell = NSView()
+        shell.wantsLayer = true
+        shell.layer?.backgroundColor = theme.inputBg.cgColor
+        shell.layer?.cornerRadius = 14
+        shell.layer?.borderWidth = 1
+        shell.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.34).cgColor
+        shell.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(shell)
+
+        let icon = NSImageView()
+        if let image = NSImage(systemSymbolName: "folder.badge.questionmark", accessibilityDescription: nil) {
+            let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+            icon.image = image.withSymbolConfiguration(config)
+        }
+        icon.contentTintColor = theme.accentColor
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        shell.addSubview(icon)
+
+        let titleLabel = NSTextField(labelWithString: "Folder access needed")
+        titleLabel.font = NSFont.systemFont(ofSize: 12.5, weight: .semibold)
+        titleLabel.textColor = theme.textPrimary
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        shell.addSubview(titleLabel)
+
+        let bodyLabel = NSTextField(wrappingLabelWithString: message)
+        bodyLabel.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        bodyLabel.textColor = theme.textDim
+        bodyLabel.translatesAutoresizingMaskIntoConstraints = false
+        shell.addSubview(bodyLabel)
+
+        let grantButton = HoverButton(title: "", target: self, action: #selector(grantTapped))
+        grantButton.isBordered = false
+        grantButton.wantsLayer = true
+        grantButton.normalBg = theme.accentColor.cgColor
+        grantButton.hoverBg = theme.accentColor.withAlphaComponent(0.82).cgColor
+        grantButton.layer?.backgroundColor = theme.accentColor.cgColor
+        grantButton.layer?.cornerRadius = 10
+        grantButton.attributedTitle = NSAttributedString(
+            string: "Grant Folder Access",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold),
+                .foregroundColor: NSColor.white
+            ]
+        )
+        grantButton.translatesAutoresizingMaskIntoConstraints = false
+        shell.addSubview(grantButton)
+
+        NSLayoutConstraint.activate([
+            shell.topAnchor.constraint(equalTo: topAnchor),
+            shell.leadingAnchor.constraint(equalTo: leadingAnchor),
+            shell.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -56),
+            shell.widthAnchor.constraint(lessThanOrEqualToConstant: 396),
+            shell.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            icon.topAnchor.constraint(equalTo: shell.topAnchor, constant: 12),
+            icon.leadingAnchor.constraint(equalTo: shell.leadingAnchor, constant: 12),
+            icon.widthAnchor.constraint(equalToConstant: 18),
+            icon.heightAnchor.constraint(equalToConstant: 18),
+
+            titleLabel.topAnchor.constraint(equalTo: shell.topAnchor, constant: 12),
+            titleLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
+            titleLabel.trailingAnchor.constraint(equalTo: shell.trailingAnchor, constant: -12),
+
+            bodyLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+            bodyLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            bodyLabel.trailingAnchor.constraint(equalTo: shell.trailingAnchor, constant: -12),
+
+            grantButton.topAnchor.constraint(equalTo: bodyLabel.bottomAnchor, constant: 10),
+            grantButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            grantButton.bottomAnchor.constraint(equalTo: shell.bottomAnchor, constant: -12),
+            grantButton.heightAnchor.constraint(equalToConstant: 30),
+            grantButton.widthAnchor.constraint(equalToConstant: 150)
+        ])
+    }
+
+    @objc private func grantTapped() {
+        onGrantTapped?()
+    }
+}
+
 class ChatBubbleView: NSView, NSTextViewDelegate {
     let textView = NSTextView()
     let headerLabel = NSTextField(labelWithString: "")
@@ -741,6 +839,16 @@ extension TerminalView {
         let bubble = ChatBubbleView(text: errorText, isUser: false, speakerName: "System", theme: t)
         transcriptStack.addArrangedSubview(bubble)
         bubble.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
+        scrollToBottom()
+    }
+
+    func appendWorkspacePermissionPrompt(_ text: String) {
+        let card = WorkspacePermissionCardView(theme: theme, message: text)
+        card.onGrantTapped = { [weak self] in
+            self?.onRequestWorkspaceAccess?()
+        }
+        transcriptStack.addArrangedSubview(card)
+        card.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
         scrollToBottom()
     }
 
