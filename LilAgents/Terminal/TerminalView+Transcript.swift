@@ -616,6 +616,62 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
     }
 }
 
+class SourceBadgeView: NSView {
+    init(text: String, theme: PopoverTheme) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let shell = NSView()
+        shell.wantsLayer = true
+        shell.layer?.backgroundColor = theme.inputBg.cgColor
+        shell.layer?.cornerRadius = 12
+        shell.layer?.borderWidth = 1
+        shell.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.32).cgColor
+        shell.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(shell)
+
+        let stack = NSStackView()
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 6
+        stack.edgeInsets = NSEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        shell.addSubview(stack)
+
+        let icon = NSImageView()
+        if let image = NSImage(systemSymbolName: "archivebox.fill", accessibilityDescription: nil) {
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+            icon.image = image.withSymbolConfiguration(config)
+        }
+        icon.contentTintColor = theme.accentColor
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.widthAnchor.constraint(equalToConstant: 12).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 12).isActive = true
+        stack.addArrangedSubview(icon)
+
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 11.5, weight: .medium)
+        label.textColor = theme.textDim
+        label.lineBreakMode = .byWordWrapping
+        label.maximumNumberOfLines = 2
+        stack.addArrangedSubview(label)
+
+        NSLayoutConstraint.activate([
+            shell.topAnchor.constraint(equalTo: topAnchor),
+            shell.leadingAnchor.constraint(equalTo: leadingAnchor),
+            shell.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -56),
+            shell.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            stack.topAnchor.constraint(equalTo: shell.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: shell.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: shell.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: shell.bottomAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+}
+
 extension TerminalView {
     func expertSuggestionCardHeight(for expertCount: Int) -> CGFloat {
         let count = CGFloat(expertCount)
@@ -761,6 +817,12 @@ extension TerminalView {
     }
 
     func appendToolResult(summary: String, isError: Bool) {
+        if summary.hasPrefix("Source: ") {
+            let badge = SourceBadgeView(text: summary, theme: theme)
+            transcriptStack.addArrangedSubview(badge)
+            badge.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
+            scrollToBottom()
+        }
         setLiveStatus(summary, isBusy: !isError, isError: isError)
     }
 
@@ -791,7 +853,14 @@ extension TerminalView {
                 }
             case .error:
                 appendError(msg.text)
-            case .toolUse, .toolResult:
+            case .toolUse:
+                continue
+            case .toolResult:
+                if msg.text.hasPrefix("Source: ") {
+                    let badge = SourceBadgeView(text: msg.text, theme: t)
+                    transcriptStack.addArrangedSubview(badge)
+                    badge.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
+                }
                 continue
             }
             lastRole = msg.role

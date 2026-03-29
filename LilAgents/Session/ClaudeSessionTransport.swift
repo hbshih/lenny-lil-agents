@@ -53,6 +53,12 @@ extension ClaudeSession {
             self.appendHistory(Message(role: .toolResult, text: status), to: conversationKey)
 
             let archiveMode = AppSettings.effectiveArchiveAccessMode
+            let sourceSummary = archiveMode == .starterPack
+                ? "Source: Starter pack"
+                : "Source: Official Lenny MCP"
+            self.onToolResult?(sourceSummary, false)
+            self.appendHistory(Message(role: .toolResult, text: sourceSummary), to: conversationKey)
+
             if archiveMode == .starterPack {
                 let localResult = self.searchStarterArchive(message: message, expert: activeExpert)
                 let expertNames = localResult.experts.map(\.name).joined(separator: ", ")
