@@ -63,6 +63,26 @@ extension WalkerCharacter {
         }
     }
 
+    func contextMenu() -> NSMenu {
+        let menu = NSMenu()
+
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(AppDelegate.openSettings), keyEquivalent: "")
+        settingsItem.target = NSApp.delegate
+        menu.addItem(settingsItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(title: "Quit Lil-Lenny", action: #selector(AppDelegate.quitApp), keyEquivalent: "")
+        quitItem.target = NSApp.delegate
+        menu.addItem(quitItem)
+
+        return menu
+    }
+
+    func showContextMenu(with event: NSEvent, in view: NSView) {
+        NSMenu.popUpContextMenu(contextMenu(), with: event, for: view)
+    }
+
     func beginHorizontalDrag(at event: NSEvent) {
         isDraggingHorizontally = true
         usesExpandedHorizontalRange = true

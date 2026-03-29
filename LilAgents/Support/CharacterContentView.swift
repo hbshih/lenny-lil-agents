@@ -11,6 +11,10 @@ class CharacterContentView: NSView {
     private var didDrag = false
     private let dragThreshold: CGFloat = 4
 
+    override func menu(for event: NSEvent) -> NSMenu? {
+        character?.contextMenu()
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
         let localPoint = convert(point, from: superview)
         guard bounds.contains(localPoint) else { return nil }
@@ -83,5 +87,11 @@ class CharacterContentView: NSView {
         }
         mouseDownPoint = nil
         didDrag = false
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        mouseDownPoint = nil
+        didDrag = false
+        character?.showContextMenu(with: event, in: self)
     }
 }
