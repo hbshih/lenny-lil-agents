@@ -12,12 +12,15 @@ Current behavior:
 - Archive access has two modes:
   - `starterPack`: bundled local free archive search under `LilAgents/StarterArchive`
   - `officialMCP`: the official Lenny MCP path, using the user's own CLI setup or bearer token
-- The app can surface relevant experts after a response completes.
+- The app can surface relevant experts after a Lenny response completes.
 - Expert switching is no longer automatic.
-- Suggested experts now appear in a dedicated visible suggestion bar with buttons.
+- Welcome pills live in a separate bottom suggestion panel above the composer.
+- Expert suggestions now render inline in the transcript, per Lenny reply, with collapsed and expanded states preserved for older replies.
 - Expert suggestions only appear for names that match bundled avatar assets.
-- Clicking a suggested expert button opens that expert's own dialog above that avatar.
-- The app maintains separate follow-up threads for Lenny and each guest.
+- Clicking a suggested expert swaps the main character from Lenny into that expert instead of spawning companion avatars.
+- The app maintains separate follow-up threads for Lenny and each guest, and returning to Lenny restores Lenny's own transcript.
+- Expert suggestions can be reopened from their collapsed transcript state after a user has already chosen one.
+- Live status now prefers transport- and tool-specific copy, and the minimized tag above the avatar uses a compact version of that status.
 - The popover currently uses one default visual style instead of multiple selectable themes.
 
 ## Source Folder Layout
@@ -41,7 +44,7 @@ LilAgents/
   Coordinates all on-screen characters, display-link ticking, Dock geometry, expert focus, and companion guest avatars.
 
 - `LilAgents/App/AppSettings.swift`
-  Persistent app settings for archive mode, preferred transport, official MCP token override, and debug logging.
+  Persistent app settings for archive mode, preferred transport, model selection labels, official MCP token override, and debug logging.
 
 - `LilAgents/App/SettingsView.swift`
   Settings UI for archive mode selection, transport preference, official MCP token entry, debug logging, and setup instructions.
@@ -54,22 +57,22 @@ LilAgents/
   Shared enums/constants for `WalkerCharacter`.
 
 - `LilAgents/Character/WalkerCharacterCore.swift`
-  Character setup, asset loading, persona switching, click handling, companion avatar configuration.
+  Character setup, asset loading, persona switching, click handling, transcript restoration, and companion-avatar suppression for expert suggestions.
 
 - `LilAgents/Character/WalkerCharacterPopover.swift`
   Popover opening/closing, expert-focus wiring, live dialog behavior.
 
 - `LilAgents/Character/WalkerCharacterPopoverWindow.swift`
-  Popover window creation, title bar, theme resolution, return-to-Lenny button, and `TerminalView` instantiation.
+  Popover window creation, title bar controls (expand, pin, close), theme resolution, return-to-Lenny behavior, and `TerminalView` instantiation.
 
 - `LilAgents/Character/WalkerCharacterSessionWiring.swift`
-  Wires `ClaudeSession` callbacks (`onText`, `onTurnComplete`, `onError`, `onToolUse`, `onToolResult`, `onExpertsUpdated`) to the character and terminal UI.
+  Wires `ClaudeSession` callbacks (`onText`, `onTurnComplete`, `onError`, `onToolUse`, `onToolResult`, `onExpertsUpdated`) to the character and terminal UI, including live-status formatting and compact avatar-tag status text.
 
 - `LilAgents/Character/WalkerCharacterBubble.swift`
   Thinking/completion speech bubbles, sound playback, bubble positioning, and expert name tag height constant.
 
 - `LilAgents/Character/WalkerCharacterExpertTag.swift`
-  Floating expert-name tag window creation, positioning, styling, and activity-status display.
+  Floating expert-name tag window creation, positioning, styling, and compact activity-status display above the avatar.
 
 - `LilAgents/Character/WalkerCharacterVisuals.swift`
   Handoff effects, smoke/genie visuals, and remaining visual helpers.
@@ -79,13 +82,13 @@ LilAgents/
 
 ### Session / AI / MCP
 - `LilAgents/Session/ClaudeSession.swift`
-  Thin orchestration shell for a single conversation session, including staged expert suggestions.
+  Thin orchestration shell for a single conversation session, including staged expert suggestions and model-label helpers for status copy.
 
 - `LilAgents/Session/ClaudeSessionModels.swift`
-  Data models: `ResponderExpert`, `SessionAttachment`, `ConversationState`, `SearchEnvelope`/`SearchResult`, and `Message`.
+  Data models: `ResponderExpert`, `SessionAttachment`, `ConversationState`, `ExpertSuggestionEntry`, `SearchEnvelope`/`SearchResult`, and `Message`.
 
 - `LilAgents/Session/ClaudeSessionState.swift`
-  Per-thread conversation state, history helpers, prompt building (`buildInstructions`, `buildUserPrompt`, `buildConversationPrompt`, `buildInputContent`), and turn lifecycle (`finishTurn`, `failTurn`).
+  Per-thread conversation state, per-reply expert suggestion state, prompt building (`buildInstructions`, `buildUserPrompt`, `buildConversationPrompt`, `buildInputContent`), and turn lifecycle (`finishTurn`, `failTurn`).
 
 - `LilAgents/Session/ClaudeSessionBackend.swift`
   Shell environment resolution, backend discovery (Claude Code CLI → Codex CLI → OpenAI API), forced-backend handling, executable PATH lookup, auth checks, MCP token resolution, and setup/status messaging.
@@ -94,16 +97,16 @@ LilAgents/
   Top-level `start()` and `send()` entry points, archive-mode routing (starter pack vs. official MCP), local starter-archive search, expert publishing after responses, and process termination.
 
 - `LilAgents/Session/ClaudeSessionCLI.swift`
-  Claude Code CLI and Codex CLI dispatch: argument assembly, MCP config file creation, process execution, and result routing.
+  Claude Code CLI and Codex CLI dispatch: argument assembly, Claude stream-json setup, MCP config file creation, process execution, and result routing.
 
 - `LilAgents/Session/ClaudeSessionCLIParsing.swift`
-  CLI output parsing: structured JSON envelope extraction (`answer_markdown` / `suggested_experts`), Claude CLI result/metadata extraction, error normalization (with prompt-dump suppression), and `prepareAssistantOutput`.
+  CLI output parsing: structured JSON envelope extraction (`answer_markdown` / `suggested_experts`), fallback malformed-envelope recovery, Claude CLI stream-event parsing, result/metadata extraction, error normalization (with prompt-dump suppression), and `prepareAssistantOutput`.
 
 - `LilAgents/Session/ClaudeSessionOpenAI.swift`
-  Direct OpenAI Responses API transport: request construction, MCP tool injection, response handling, `mcp_call`/`mcp_list_tools` processing, and message text extraction.
+  Direct OpenAI Responses API transport: request construction, MCP tool injection, response handling, `mcp_call`/`mcp_list_tools` processing, status summaries, and message text extraction.
 
 - `LilAgents/Session/ClaudeSessionExpertResolution.swift`
-  Local/MCP expert extraction, scoring, avatar resolution, assistant-text fallback parsing, speaker-name extraction from filenames/titles, and guest context building.
+  Local/MCP expert extraction, scoring, avatar resolution, assistant-text fallback parsing, MCP status summaries, speaker-name extraction from filenames/titles, and guest context building.
 
 - `LilAgents/Session/ClaudeSessionExpertCatalog.swift`
   Expert name catalog: avatar path lookup, canonical name matching, known-expert enumeration from bundled assets, markdown bold-name extraction, structured expert-tag parsing, PNG avatar conversion/caching, and name normalization.
@@ -122,22 +125,22 @@ LilAgents/
 
 ### Popover / terminal UI
 - `LilAgents/Terminal/TerminalView.swift`
-  Thin shell for the chat UI view, including deferred expert suggestions, the return-to-Lenny hook, and property declarations.
+  Thin shell for the chat UI view, including deferred expert suggestions, inline expert-picker callbacks, attachment previews, the return-to-Lenny hook, and property declarations.
 
 - `LilAgents/Terminal/TerminalView+Setup.swift`
-  View creation, layout, controls, status bar, expert suggestion panel, input field, attachment label, drag/drop registration.
+  View creation, layout, controls, status bar, welcome suggestion panel, input field, attachment previews, pin/close actions, and drag/drop registration.
 
 - `LilAgents/Terminal/TerminalView+Panels.swift`
-  Expert suggestion panel population, live-status display, status clearing, expert-button tap handling, and `NSTextViewDelegate` link-click routing.
+  Welcome suggestion panel population, live-status display, status clearing, transcript suggestion rendering, expert-button tap handling, and `NSTextViewDelegate` link-click routing.
 
 - `LilAgents/Terminal/TerminalViewLayout.swift`
   Layout constants, `relayoutPanels()` frame calculations, panel styling helpers, and panel visibility toggling.
 
 - `LilAgents/Terminal/TerminalView+Transcript.swift`
-  Transcript appending, replay, user/assistant/status/error lines, and transcript sizing/scroll behavior.
+  Transcript appending, replay, greeting restoration, per-reply expert suggestion rendering, compact picked-expert summaries, and transcript sizing/scroll behavior.
 
 - `LilAgents/Terminal/TerminalView+Attachments.swift`
-  Drag-and-drop attachment extraction and attachment label refresh.
+  Drag-and-drop attachment extraction, attachment preview rendering, and removal controls.
 
 - `LilAgents/Terminal/TerminalMarkdownRenderer.swift`
   Markdown and inline markdown rendering for transcript output.
@@ -199,13 +202,14 @@ These are old assets from the original app and are no longer the main runtime ch
    - optional staged expert suggestions
    - structured answer parsing via `ClaudeSessionCLIParsing` when the model returns the JSON response envelope
    - verbose debug logs when enabled
+9. In official MCP mode, prompts now instruct the backend to route through `index.md` first before deeper reads.
 
 ## 3. Expert suggestions appear
 1. `ClaudeSessionExpertResolution` and `ClaudeSessionExpertCatalog` identify relevant experts from local search, MCP-derived data, or assistant text fallback.
-2. `LilAgentsController` creates or updates companion avatars as needed.
-3. The app does not auto-switch to another expert.
-4. After the response completes, the popover shows a dedicated expert suggestion bar with visible buttons via `TerminalView+Panels`.
-5. Clicking one of those buttons opens that expert's own dialog above that avatar.
+2. The app does not auto-switch to another expert.
+3. After a Lenny response completes, the transcript shows an inline expert picker for that specific reply.
+4. Clicking one of those buttons swaps Lenny into the selected expert and collapses that specific picker entry.
+5. Returning to Lenny restores Lenny's transcript, including older picker entries in their prior state.
 6. Suggestions only surface when the expert name resolves to a bundled avatar.
 
 ## 4. Follow-up mode
@@ -213,7 +217,8 @@ These are old assets from the original app and are no longer the main runtime ch
 - Lenny has a separate thread.
 - Switching avatars restores the correct thread and context.
 - Expert suggestions are staged until the end of the turn so the current speaker does not change mid-response.
-- The popover UI is now content-first: larger transcript, simplified header copy, single default theme, and a compact suggestion panel instead of decorative chrome.
+- Each Lenny reply can own its own suggestion picker state, so older replies stay collapsed or expanded as last seen while new replies get fresh options.
+- The popover UI is now content-first: larger transcript, simplified header copy, single default theme, a separate welcome panel above the composer, and inline transcript-native expert suggestions.
 
 ## Navigation Guide
 
@@ -222,8 +227,8 @@ Start with:
 - `LilAgents/Session/ClaudeSessionTransport.swift`
 - `LilAgents/Session/ClaudeSessionBackend.swift`
 - `LilAgents/Session/ClaudeSessionCLI.swift`
-- `LilAgents/Session/ClaudeSessionOpenAI.swift`
 - `LilAgents/Session/ClaudeSessionCLIParsing.swift`
+- `LilAgents/Session/ClaudeSessionOpenAI.swift`
 - `LilAgents/Session/ClaudeSessionState.swift`
 
 ### If you want to change which guests appear

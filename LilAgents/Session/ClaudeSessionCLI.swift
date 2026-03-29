@@ -3,9 +3,10 @@ import Foundation
 extension ClaudeSession {
     func callClaudeCodeCLI(executablePath: String, message: String, attachments: [SessionAttachment], environment: [String: String], expert: ResponderExpert?, conversationKey: String, archiveContext: String?, officialMCPToken: String?) {
         let useOfficialMCP = officialMCPToken != nil
+        let modelLabel = selectedClaudeModelLabel()
         let planningSummary = useOfficialMCP
-            ? (expert == nil ? "Using Claude Code CLI and the official Lenny MCP server" : "Continuing \(expert!.name)'s thread through Claude Code CLI and the official Lenny MCP server")
-            : (expert == nil ? "Using Claude Code CLI with bundled starter archive context" : "Continuing \(expert!.name)'s thread through Claude Code CLI and bundled starter archive context")
+            ? "Calling \(modelLabel) in Claude Code with Lenny MCP"
+            : "Calling \(modelLabel) in Claude Code"
         onToolUse?("Planning", ["summary": planningSummary])
         appendHistory(Message(role: .toolUse, text: "Planning: \(planningSummary)"), to: conversationKey)
 
@@ -40,7 +41,8 @@ extension ClaudeSession {
             "-p",
             prompt,
             "--output-format",
-            "json",
+            "stream-json",
+            "--verbose",
             "--permission-mode",
             "dontAsk"
         ]
@@ -72,23 +74,15 @@ extension ClaudeSession {
             environment: environment,
             workingDirectory: preferredWorkingDirectoryURL(),
             onLineReceived: { [weak self] line in
-                // Claude Code JSON stream parsing
+                guard let self else { return }
                 if let data = line.data(using: .utf8),
-                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    if let type = json["type"] as? String {
-                        if type == "message", let msg = json["message"] as? String {
-                            self?.onToolUse?("Generating", ["summary": msg])
-                        } else if type == "tool_use" {
-                            let tool = json["tool"] as? String ?? "Tool"
-                            self?.onToolUse?("Running", ["summary": "Using \(tool)..."])
-                        } else if type == "progress" {
-                            let msg = json["message"] as? String ?? "Processing..."
-                            self?.onToolUse?("Progress", ["summary": msg])
-                        }
-                    }
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let event = self.claudeCLIStreamEvent(from: json) {
+                    self.onToolUse?(event.title, ["summary": event.summary])
                 } else if !line.hasPrefix("{") && !line.hasPrefix("}") {
-                    // Fallback for non-JSON lines printed by CLI, show them instantly
-                    self?.onToolUse?("Thinking", ["summary": String(line.prefix(60))])
+                    let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    self.onToolUse?("Calling Model", ["summary": String(trimmed.prefix(80))])
                 }
             }
         ) { [weak self] status, stdout, stderr in
@@ -116,9 +110,10 @@ extension ClaudeSession {
     }
 
     func callCodexCLI(executablePath: String, message: String, attachments: [SessionAttachment], environment: [String: String], expert: ResponderExpert?, conversationKey: String, archiveContext: String?, useBundledMCP: Bool) {
+        let modelLabel = selectedCodexModelLabel()
         let planningSummary = useBundledMCP
-            ? (expert == nil ? "Using Codex CLI and the official Lenny MCP server" : "Continuing \(expert!.name)'s thread through Codex CLI and the official Lenny MCP server")
-            : (expert == nil ? "Using Codex CLI with bundled starter archive context" : "Continuing \(expert!.name)'s thread through Codex CLI and bundled starter archive context")
+            ? "Calling \(modelLabel) in Codex with Lenny MCP"
+            : "Calling \(modelLabel) in Codex"
         onToolUse?("Planning", ["summary": planningSummary])
         appendHistory(Message(role: .toolUse, text: "Planning: \(planningSummary)"), to: conversationKey)
 

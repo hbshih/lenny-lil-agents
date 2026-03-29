@@ -94,6 +94,11 @@ extension ClaudeSession {
         }
         `suggested_experts` should include up to 3 relevant archive experts you explicitly relied on or cited.
         If there are no useful expert suggestions, return an empty array and set `suggest_expert_prompt` to false.
+        When MCP tools are available, prefer a fast routing pass before deep reading:
+        1. Check `index.md` first to identify the right person, topic, or source.
+        2. If `index.md` points to a likely person or source, narrow to that person/source next.
+        3. Only then do deeper `read_excerpt` or `read_content` calls.
+        Prefer the minimum number of MCP calls needed for a grounded answer.
         """
 
         if let expert {
@@ -101,7 +106,7 @@ extension ClaudeSession {
 
             The user explicitly switched into \(expert.name)'s avatar.
             Answer in first person as \(expert.name).
-            If MCP tools are available, search for \(expert.name) first and stay in that context unless the user asks to pivot.
+            If MCP tools are available, check `index.md` for \(expert.name) first, then stay in that person's context unless the user asks to pivot.
             \(expert.responseScript)
             \(expertContextPrompt(expert.archiveContext))
             """
@@ -211,7 +216,7 @@ extension ClaudeSession {
             sections.append("Attachment context:\n\(attachmentContext)")
         }
 
-        sections.append(expectMCP ? "Use the Lenny archive MCP tools whenever they help. In expert mode, search that person first. Return only the JSON object described above." : "Answer using the bundled starter archive context above. Be explicit when the starter pack does not include enough evidence. Return only the JSON object described above.")
+        sections.append(expectMCP ? "Use the Lenny archive MCP tools whenever they help. Start with `index.md` for fast routing, then narrow to the right person/source, then read deeper only as needed. In expert mode, route through `index.md` to that person first. Return only the JSON object described above." : "Answer using the bundled starter archive context above. Be explicit when the starter pack does not include enough evidence. Return only the JSON object described above.")
         return sections.joined(separator: "\n\n")
     }
 

@@ -43,9 +43,10 @@ extension ClaudeSession {
             )
         }
 
+        let modelLabel = selectedOpenAIModelLabel()
         let planningSummary = mcpToken == nil
-            ? (expert == nil ? "Answering using the bundled starter archive context" : "Continuing \(expert!.name)'s thread using the bundled starter archive context")
-            : (expert == nil ? "Understanding your question and deciding which archive tools to use" : "Continuing \(expert!.name)'s thread with the right archive context")
+            ? "Calling \(modelLabel) in OpenAI Responses"
+            : "Calling \(modelLabel) in OpenAI Responses with Lenny MCP"
         onToolUse?("Planning", ["summary": planningSummary])
         appendHistory(Message(role: .toolUse, text: "Planning: \(planningSummary)"), to: conversationKey)
 

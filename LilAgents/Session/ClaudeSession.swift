@@ -43,12 +43,24 @@ final class ClaudeSession {
         return model == .default ? nil : model.rawValue
     }
 
+    func selectedClaudeModelLabel() -> String {
+        AppSettings.preferredClaudeModel.label
+    }
+
     func selectedCodexModel() -> String? {
         let model = AppSettings.preferredCodexModel
         return model == .default ? nil : model.rawValue
     }
 
+    func selectedCodexModelLabel() -> String {
+        AppSettings.preferredCodexModel.label
+    }
+
     func selectedOpenAIModel() -> String {
         AppSettings.preferredOpenAIModel.rawValue
+    }
+
+    func selectedOpenAIModelLabel() -> String {
+        AppSettings.preferredOpenAIModel.label
     }
 }

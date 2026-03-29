@@ -5,7 +5,7 @@ extension WalkerCharacter {
         let baseName = representedExpert?.name ?? focusedExpert?.name
         let tagText: String
         if isClaudeBusy, !currentActivityStatus.isEmpty {
-            tagText = currentActivityStatus
+            tagText = compactLiveStatus(currentActivityStatus)
         } else if let baseName, !baseName.isEmpty {
             tagText = baseName
         } else {

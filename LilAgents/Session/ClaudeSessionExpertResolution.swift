@@ -77,21 +77,21 @@ extension ClaudeSession {
         switch toolName {
         case "search_content":
             let query = (arguments["query"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "the archive"
-            return ("Searching Archive", query)
+            return ("Calling MCP Tool", "search_content: \(query)")
         case "read_excerpt":
             let filename = readableSourceName(from: arguments["filename"] as? String)
             let query = (arguments["query"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let query, !query.isEmpty {
-                return ("Reading Excerpt", "\(filename) for \(query)")
+                return ("Calling MCP Tool", "read_excerpt: \(filename) for \(query)")
             }
-            return ("Reading Excerpt", filename)
+            return ("Calling MCP Tool", "read_excerpt: \(filename)")
         case "read_content":
             let filename = readableSourceName(from: arguments["filename"] as? String)
-            return ("Reading Full Piece", filename)
+            return ("Calling MCP Tool", "read_content: \(filename)")
         case "list_content":
-            return ("Browsing Archive", summarizeArguments(arguments))
+            return ("Calling MCP Tool", "list_content: \(summarizeArguments(arguments))")
         default:
-            return ("Using Tool", summarizeArguments(arguments))
+            return ("Calling MCP Tool", "\(toolName): \(summarizeArguments(arguments))")
         }
     }
 

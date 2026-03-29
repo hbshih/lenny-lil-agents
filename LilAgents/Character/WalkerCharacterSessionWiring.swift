@@ -54,9 +54,10 @@ extension WalkerCharacter {
         session.onToolUse = { [weak self] toolName, input in
             guard let self else { return }
             let summary = self.formatToolInput(input)
+            let liveStatus = self.formatLiveStatus(toolName: toolName, summary: summary)
             self.noteLiveStatusEvent()
-            self.currentActivityStatus = self.formatLiveStatus(toolName: toolName, summary: summary)
-            self.terminalView?.appendToolUse(toolName: toolName, summary: summary)
+            self.currentActivityStatus = liveStatus
+            self.terminalView?.setLiveStatus(liveStatus, isBusy: true, isError: false)
             self.updateExpertNameTag()
 
             if toolName.lowercased().contains("planning") {
@@ -101,19 +102,61 @@ extension WalkerCharacter {
 
     func formatLiveStatus(toolName: String, summary: String) -> String {
         let lowered = toolName.lowercased()
+        let trimmedSummary = summary
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
         if lowered.contains("planning") {
-            return "On it…"
+            return trimmedSummary.isEmpty ? "On it…" : trimmedSummary
+        }
+        if lowered.contains("calling model") {
+            return trimmedSummary.isEmpty ? "Calling model" : "Calling Model: \(trimmedSummary)"
+        }
+        if lowered.contains("calling mcp tool") {
+            return trimmedSummary.isEmpty ? "Calling MCP tool" : "Calling MCP Tool: \(trimmedSummary)"
         }
         if lowered.contains("search") || lowered.contains("reading") || lowered.contains("browse") {
-            return "Searching archive"
+            if trimmedSummary.isEmpty { return toolName }
+            return "\(toolName): \(trimmedSummary)"
         }
         if lowered.contains("writing") || lowered.contains("generating") {
-            return "Writing answer"
+            return trimmedSummary.isEmpty ? "Writing answer" : trimmedSummary
         }
-        if lowered.contains("running") || lowered.contains("progress") {
-            return "Running"
+        if lowered.contains("running") || lowered.contains("progress") || lowered.contains("thinking") {
+            return trimmedSummary.isEmpty ? toolName : trimmedSummary
         }
-        return toolName
+        return trimmedSummary.isEmpty ? toolName : "\(toolName): \(trimmedSummary)"
+    }
+
+    func compactLiveStatus(_ status: String) -> String {
+        let trimmed = status.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+
+        if trimmed.hasPrefix("Calling MCP Tool:") {
+            let toolPortion = trimmed.replacingOccurrences(of: "Calling MCP Tool: ", with: "")
+            let toolName = toolPortion.components(separatedBy: ":").first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "MCP"
+            return "MCP: \(toolName)"
+        }
+
+        if trimmed.hasPrefix("Calling Model:") {
+            let modelPortion = trimmed.replacingOccurrences(of: "Calling Model: ", with: "")
+            return String(modelPortion.prefix(32))
+        }
+
+        if trimmed.hasPrefix("Calling "), let range = trimmed.range(of: " in ") {
+            return String(trimmed[..<range.lowerBound])
+        }
+
+        if trimmed.lowercased().hasPrefix("writing") {
+            return "Writing"
+        }
+
+        if trimmed.lowercased().hasPrefix("loaded ") {
+            return "Loaded"
+        }
+
+        return String(trimmed.prefix(32))
     }
 
     func noteLiveStatusEvent() {
@@ -150,6 +193,20 @@ extension WalkerCharacter {
 
         let lastEventAt = lastLiveStatusEventAt ?? Date()
         guard Date().timeIntervalSince(lastEventAt) >= 4.5 else { return }
+
+        let genericStatuses = Set([
+            "on it…",
+            "searching archive",
+            "reading",
+            "writing answer"
+        ])
+        let normalizedCurrent = currentActivityStatus.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !normalizedCurrent.isEmpty, !genericStatuses.contains(normalizedCurrent) {
+            terminalView?.setLiveStatus(currentActivityStatus, isBusy: true, isError: false)
+            updateExpertNameTag()
+            lastLiveStatusEventAt = Date()
+            return
+        }
 
         let fallbackStatuses = [
             "On it…",

@@ -11,12 +11,12 @@ enum AppSettings {
 
         var label: String {
             switch self {
-            case .default: return "Claude default"
-            case .sonnet: return "Sonnet"
-            case .opus: return "Opus"
-            case .haiku: return "Haiku"
-            case .sonnet1M: return "Sonnet 1M"
-            case .opusPlan: return "Opus Plan"
+            case .default: return "Claude"
+            case .sonnet: return "Claude Sonnet"
+            case .opus: return "Claude Opus"
+            case .haiku: return "Claude Haiku"
+            case .sonnet1M: return "Claude Sonnet 1M"
+            case .opusPlan: return "Claude Opus Plan"
             }
         }
     }
@@ -49,7 +49,7 @@ enum AppSettings {
 
         var label: String {
             switch self {
-            case .default: return "Codex default"
+            case .default: return "Codex"
             case .gpt5: return "GPT-5"
             case .gpt5Mini: return "GPT-5 mini"
             case .gpt5Nano: return "GPT-5 nano"

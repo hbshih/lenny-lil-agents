@@ -172,7 +172,7 @@ extension TerminalView {
                 .foregroundColor: mainColor
             ]
         )
-        if isBusy && !isError {
+        if isBusy && !isError && text.count < 52 {
             attrStr.append(NSAttributedString(
                 string: "  ·  Close anytime",
                 attributes: [

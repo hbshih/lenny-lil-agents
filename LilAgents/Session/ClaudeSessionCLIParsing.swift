@@ -61,16 +61,25 @@ extension ClaudeSession {
     }
 
     func parseStructuredAssistantPayload(from outputText: String) -> (answerMarkdown: String, suggestedExperts: [String], suggestExpertPrompt: Bool)? {
-        guard let json = decodeStructuredAssistantJSONObject(from: outputText),
-              let answerMarkdown = json["answer_markdown"] as? String else {
+        if let json = decodeStructuredAssistantJSONObject(from: outputText),
+           let answerMarkdown = json["answer_markdown"] as? String {
+            let suggestedExperts = (json["suggested_experts"] as? [String] ?? [])
+                .compactMap { canonicalExpertName(for: $0) }
+            let suggestExpertPrompt = json["suggest_expert_prompt"] as? Bool ?? !suggestedExperts.isEmpty
+
+            SessionDebugLogger.log("assistant", "parsed structured JSON assistant payload. suggestedExperts=\(suggestedExperts.joined(separator: ", ")) prompt=\(suggestExpertPrompt)")
+            return (answerMarkdown, suggestedExperts, suggestExpertPrompt)
+        }
+
+        guard let answerMarkdown = extractStructuredJSONStringValue(forKey: "answer_markdown", from: outputText) else {
             return nil
         }
 
-        let suggestedExperts = (json["suggested_experts"] as? [String] ?? [])
+        let suggestedExperts = extractStructuredStringArray(forKey: "suggested_experts", from: outputText)
             .compactMap { canonicalExpertName(for: $0) }
-        let suggestExpertPrompt = json["suggest_expert_prompt"] as? Bool ?? !suggestedExperts.isEmpty
+        let suggestExpertPrompt = extractStructuredBoolean(forKey: "suggest_expert_prompt", from: outputText) ?? !suggestedExperts.isEmpty
 
-        SessionDebugLogger.log("assistant", "parsed structured JSON assistant payload. suggestedExperts=\(suggestedExperts.joined(separator: ", ")) prompt=\(suggestExpertPrompt)")
+        SessionDebugLogger.log("assistant", "parsed fallback structured assistant payload. suggestedExperts=\(suggestedExperts.joined(separator: ", ")) prompt=\(suggestExpertPrompt)")
         return (answerMarkdown, suggestedExperts, suggestExpertPrompt)
     }
 
@@ -168,22 +177,44 @@ extension ClaudeSession {
     }
 
     func extractClaudeCLIResult(from stdout: String) -> String? {
+        var assistantFallback: String?
         let lines = stdout.components(separatedBy: .newlines)
         for line in lines.reversed() {
             guard !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                   let data = line.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  json["type"] as? String == "result" else { continue }
-            return json["result"] as? String
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+
+            if json["type"] as? String == "result" {
+                if let direct = json["result"] as? String, !direct.isEmpty {
+                    return direct
+                }
+                if let nested = json["result"],
+                   let extracted = extractTextPayload(from: nested),
+                   !extracted.isEmpty {
+                    return extracted
+                }
+            }
+
+            if assistantFallback == nil,
+               let extracted = extractTextPayload(from: json),
+               !extracted.isEmpty,
+               !extracted.contains("\"type\":\"result\"") {
+                assistantFallback = extracted
+            }
         }
 
         if let data = stdout.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            json["type"] as? String == "result" {
-            return json["result"] as? String
+            if let direct = json["result"] as? String, !direct.isEmpty {
+                return direct
+            }
+            if let nested = json["result"] {
+                return extractTextPayload(from: nested)
+            }
         }
 
-        return nil
+        return assistantFallback
     }
 
     func logClaudeCLIResultMetadata(from stdout: String) {
@@ -198,6 +229,203 @@ extension ClaudeSession {
             SessionDebugLogger.log("claude-cli", "Claude Code metadata num_turns=\(numTurns) duration_ms=\(duration)")
             return
         }
+    }
+
+    func claudeCLIStreamEvent(from json: [String: Any]) -> (title: String, summary: String)? {
+        if let type = json["type"] as? String {
+            switch type {
+            case "tool_use":
+                let toolName = json["tool"] as? String ?? json["name"] as? String ?? "Tool"
+                let arguments = json["input"] as? [String: Any] ?? json["arguments"] as? [String: Any] ?? [:]
+                return claudeCLIToolDisplay(for: toolName, arguments: arguments)
+            case "progress":
+                let message = extractTextPayload(from: json["message"]) ?? "Processing"
+                return ("Progress", message)
+            case "result", "init", "system", "user":
+                return nil
+            default:
+                break
+            }
+        }
+
+        if let message = json["message"] as? [String: Any] {
+            if let event = claudeCLIStreamEvent(fromMessage: message) {
+                return event
+            }
+        }
+
+        if let content = json["content"] as? [[String: Any]] {
+            if let event = claudeCLIStreamEvent(fromContent: content) {
+                return event
+            }
+        }
+
+        if let summary = extractTextPayload(from: json["message"]),
+           !summary.isEmpty,
+           !summary.contains("\"answer_markdown\"") {
+            return ("Calling Model", summary)
+        }
+
+        return nil
+    }
+
+    private func claudeCLIStreamEvent(fromMessage message: [String: Any]) -> (title: String, summary: String)? {
+        if let content = message["content"] as? [[String: Any]],
+           let event = claudeCLIStreamEvent(fromContent: content) {
+            return event
+        }
+
+        if let text = extractTextPayload(from: message),
+           !text.isEmpty,
+           !text.contains("\"answer_markdown\"") {
+            return ("Calling Model", text)
+        }
+
+        return nil
+    }
+
+    private func claudeCLIStreamEvent(fromContent content: [[String: Any]]) -> (title: String, summary: String)? {
+        for block in content {
+            let blockType = (block["type"] as? String ?? "").lowercased()
+            switch blockType {
+            case "tool_use":
+                let toolName = block["name"] as? String ?? block["tool"] as? String ?? "Tool"
+                let arguments = block["input"] as? [String: Any] ?? block["arguments"] as? [String: Any] ?? [:]
+                return claudeCLIToolDisplay(for: toolName, arguments: arguments)
+            case "thinking":
+                if let text = extractTextPayload(from: block["thinking"]) ?? extractTextPayload(from: block["text"]),
+                   !text.isEmpty {
+                    return ("Thinking", text)
+                }
+            case "text", "output_text":
+                if let text = extractTextPayload(from: block["text"]),
+                   !text.isEmpty,
+                   !text.contains("\"answer_markdown\"") {
+                    return ("Calling Model", text)
+                }
+            default:
+                continue
+            }
+        }
+
+        return nil
+    }
+
+    private func claudeCLIToolDisplay(for rawToolName: String, arguments: [String: Any]) -> (title: String, summary: String) {
+        let trimmedToolName = rawToolName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let serverPrefix = "mcp__\(Constants.lennyMCPServerLabel)__"
+        if trimmedToolName.hasPrefix(serverPrefix) {
+            let name = String(trimmedToolName.dropFirst(serverPrefix.count))
+            return processDisplay(for: name, arguments: arguments)
+        }
+
+        if trimmedToolName.hasPrefix("mcp__"),
+           let fallbackName = trimmedToolName.components(separatedBy: "__").last,
+           !fallbackName.isEmpty {
+            return ("Calling MCP Tool", "\(fallbackName): \(summarizeArguments(arguments))")
+        }
+
+        return ("Calling Tool", arguments.isEmpty ? trimmedToolName : "\(trimmedToolName): \(summarizeArguments(arguments))")
+    }
+
+    private func extractTextPayload(from value: Any?) -> String? {
+        switch value {
+        case let text as String:
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+
+        case let dictionary as [String: Any]:
+            if let text = dictionary["text"] as? String {
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { return trimmed }
+            }
+
+            if let message = dictionary["message"] {
+                return extractTextPayload(from: message)
+            }
+
+            if let result = dictionary["result"] {
+                return extractTextPayload(from: result)
+            }
+
+            if let content = dictionary["content"] as? [[String: Any]] {
+                let parts = content.compactMap { block -> String? in
+                    let blockType = (block["type"] as? String ?? "").lowercased()
+                    switch blockType {
+                    case "text", "output_text":
+                        return extractTextPayload(from: block["text"])
+                    default:
+                        return nil
+                    }
+                }
+                let joined = parts.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                return joined.isEmpty ? nil : joined
+            }
+
+            return nil
+
+        case let array as [[String: Any]]:
+            let joined = array.compactMap { extractTextPayload(from: $0) }
+                .joined(separator: "\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return joined.isEmpty ? nil : joined
+
+        case let array as [Any]:
+            let joined = array.compactMap { extractTextPayload(from: $0) }
+                .joined(separator: "\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return joined.isEmpty ? nil : joined
+
+        default:
+            return nil
+        }
+    }
+
+    private func extractStructuredJSONStringValue(forKey key: String, from outputText: String) -> String? {
+        let pattern = #""\#(key)"\s*:\s*"((?:\\.|[^"\\])*)""#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
+              let match = regex.firstMatch(in: outputText, range: NSRange(outputText.startIndex..., in: outputText)),
+              match.numberOfRanges > 1,
+              let range = Range(match.range(at: 1), in: outputText) else {
+            return nil
+        }
+
+        let raw = String(outputText[range])
+        let wrapped = "\"\(raw)\""
+        guard let data = wrapped.data(using: .utf8),
+              let decoded = try? JSONSerialization.jsonObject(with: data) as? String else {
+            return nil
+        }
+        return decoded
+    }
+
+    private func extractStructuredStringArray(forKey key: String, from outputText: String) -> [String] {
+        let pattern = #""\#(key)"\s*:\s*(\[[\s\S]*?\])"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
+              let match = regex.firstMatch(in: outputText, range: NSRange(outputText.startIndex..., in: outputText)),
+              match.numberOfRanges > 1,
+              let range = Range(match.range(at: 1), in: outputText) else {
+            return []
+        }
+
+        let raw = String(outputText[range])
+        guard let data = raw.data(using: .utf8),
+              let decoded = try? JSONSerialization.jsonObject(with: data) as? [String] else {
+            return []
+        }
+        return decoded
+    }
+
+    private func extractStructuredBoolean(forKey key: String, from outputText: String) -> Bool? {
+        let pattern = #""\#(key)"\s*:\s*(true|false)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
+              let match = regex.firstMatch(in: outputText, range: NSRange(outputText.startIndex..., in: outputText)),
+              match.numberOfRanges > 1,
+              let range = Range(match.range(at: 1), in: outputText) else {
+            return nil
+        }
+
+        return String(outputText[range]) == "true"
     }
 
     func normalizeCLIError(stdout: String, stderr: String, fallback: String) -> String {
