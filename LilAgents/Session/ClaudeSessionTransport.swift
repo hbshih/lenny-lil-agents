@@ -28,11 +28,13 @@ extension ClaudeSession {
     func send(message: String, attachments: [SessionAttachment] = []) {
         let activeExpert = focusedExpert
         let conversationKey = key(for: activeExpert)
+        pendingExperts.removeAll()
+        assistantExplicitlyRequestedExperts = false
         appendHistory(Message(role: .user, text: historyText(message: message, attachments: attachments)), to: conversationKey)
         isBusy = true
         SessionDebugLogger.logMultiline(
             "turn",
-            header: "send() called. conversationKey=\(conversationKey) expert=\(activeExpert?.name ?? "none") archiveMode=\(AppSettings.archiveAccessMode.rawValue) attachments=\(SessionDebugLogger.summarizeAttachments(attachments))",
+            header: "send() called. conversationKey=\(conversationKey) expert=\(activeExpert?.name ?? "none") archiveMode=\(AppSettings.effectiveArchiveAccessMode.rawValue) attachments=\(SessionDebugLogger.summarizeAttachments(attachments))",
             body: "User message:\n\(message)"
         )
 
@@ -50,7 +52,7 @@ extension ClaudeSession {
             self.onToolResult?(status, false)
             self.appendHistory(Message(role: .toolResult, text: status), to: conversationKey)
 
-            let archiveMode = AppSettings.archiveAccessMode
+            let archiveMode = AppSettings.effectiveArchiveAccessMode
             if archiveMode == .starterPack {
                 let localResult = self.searchStarterArchive(message: message, expert: activeExpert)
                 let expertNames = localResult.experts.map(\.name).joined(separator: ", ")
@@ -224,14 +226,18 @@ extension ClaudeSession {
     }
 
     func publishPendingExperts(fallbackText: String? = nil) {
-        var experts = pendingExperts
+        let experts = pendingExperts
         pendingExperts.removeAll()
+        let assistantRequestedExperts = assistantExplicitlyRequestedExperts
+        assistantExplicitlyRequestedExperts = false
 
-        if experts.isEmpty, let fallbackText {
-            experts = expertsFromAssistantText(fallbackText)
-            if !experts.isEmpty {
-                SessionDebugLogger.log("experts", "derived \(experts.count) expert candidate(s) from assistant text fallback")
+        guard assistantRequestedExperts else {
+            if let fallbackText, fallbackText.contains("\"answer_markdown\"") {
+                SessionDebugLogger.log("experts", "skipping staged experts because assistant output was not parsed cleanly")
+            } else {
+                SessionDebugLogger.log("experts", "skipping staged experts because assistant did not explicitly request them")
             }
+            return
         }
 
         guard !experts.isEmpty else {

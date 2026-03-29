@@ -13,7 +13,7 @@ struct LilAgentsApp: App {
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate {
     var controller: LilAgentsController?
     var statusItem: NSStatusItem?
     var expertStatusItems: [NSStatusItem] = []
@@ -22,7 +22,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var settingsWindow: NSWindow?
     var char1Item: NSMenuItem?
     var backToLennyItem: NSMenuItem?
-    let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    var installUpdateItem: NSMenuItem?
+    var pendingScheduledUpdate = false
+    var updaterController: SPUStandardUpdaterController!
+
+    override init() {
+        super.init()
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: self)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -111,6 +118,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(settingsItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let installUpdateItem = NSMenuItem(title: "Install Available Update…", action: #selector(installPendingUpdate), keyEquivalent: "")
+        installUpdateItem.isHidden = true
+        installUpdateItem.target = self
+        menu.addItem(installUpdateItem)
+        self.installUpdateItem = installUpdateItem
 
         menu.addItem(NSMenuItem.separator())
 
@@ -250,6 +265,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
+    @objc func installPendingUpdate() {
+        pendingScheduledUpdate = false
+        refreshPendingUpdateMenuItem()
+        updaterController.checkForUpdates(nil)
+    }
+
     @objc func quitApp() {
         NSApp.terminate(nil)
     }
@@ -322,6 +343,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem?.button {
             button.toolTip = expert == nil ? "Open Lenny" : "Current guide: \(expert!.name)"
         }
+    }
+
+    private func refreshPendingUpdateMenuItem() {
+        installUpdateItem?.isHidden = !pendingScheduledUpdate
+    }
+
+    var supportsGentleScheduledUpdateReminders: Bool {
+        true
+    }
+
+    func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool {
+        immediateFocus
+    }
+
+    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        guard !handleShowingUpdate, !state.userInitiated else { return }
+        pendingScheduledUpdate = true
+        refreshPendingUpdateMenuItem()
+    }
+
+    func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
+        pendingScheduledUpdate = false
+        refreshPendingUpdateMenuItem()
+    }
+
+    func standardUserDriverWillFinishUpdateSession() {
+        pendingScheduledUpdate = false
+        refreshPendingUpdateMenuItem()
     }
 }
 

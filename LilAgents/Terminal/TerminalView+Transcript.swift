@@ -37,6 +37,7 @@ class HoverChipView: NSView {
     var onTapped: (() -> Void)?
     private let normalBg: CGColor
     private let hoverBg: CGColor
+    private weak var contentStack: NSStackView?
 
     init(symbol: String, label: String, theme: PopoverTheme) {
         self.normalBg = theme.inputBg.cgColor
@@ -57,14 +58,18 @@ class HoverChipView: NSView {
         hStack.spacing = 10
         hStack.edgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
         hStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack = hStack
         addSubview(hStack)
+
+        let minimumHeight = heightAnchor.constraint(greaterThanOrEqualToConstant: 48)
+        minimumHeight.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
             hStack.topAnchor.constraint(equalTo: topAnchor),
             hStack.bottomAnchor.constraint(equalTo: bottomAnchor),
             hStack.leadingAnchor.constraint(equalTo: leadingAnchor),
             hStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
+            minimumHeight,
         ])
 
         let iconView = NSImageView()
@@ -87,9 +92,18 @@ class HoverChipView: NSView {
         textLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         textLabel.translatesAutoresizingMaskIntoConstraints = false
         hStack.addArrangedSubview(textLabel)
+
+        setContentHuggingPriority(.required, for: .vertical)
+        setContentCompressionResistancePriority(.required, for: .vertical)
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    override var intrinsicContentSize: NSSize {
+        guard let contentStack else { return super.intrinsicContentSize }
+        let fitting = contentStack.fittingSize
+        return NSSize(width: NSView.noIntrinsicMetric, height: max(48, fitting.height))
+    }
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -130,6 +144,7 @@ class HoverChipView: NSView {
 class WelcomeChipsView: NSView {
     var onChipTapped: ((String) -> Void)?
     private let theme: PopoverTheme
+    private weak var outerStackView: NSStackView?
 
     // (SF Symbol, display label, full question sent on tap)
     private let suggestions: [(String, String, String)] = [
@@ -155,6 +170,7 @@ class WelcomeChipsView: NSView {
         outerStack.alignment = .leading
         outerStack.spacing = 8
         outerStack.translatesAutoresizingMaskIntoConstraints = false
+        outerStackView = outerStack
         addSubview(outerStack)
 
         NSLayoutConstraint.activate([
@@ -177,20 +193,23 @@ class WelcomeChipsView: NSView {
             rowStack.distribution = .fillEqually
             rowStack.translatesAutoresizingMaskIntoConstraints = false
 
-            var rowChips: [HoverChipView] = []
             for (symbol, label, sendText) in pair {
                 let chip = HoverChipView(symbol: symbol, label: label, theme: theme)
                 chip.onTapped = { [weak self] in self?.onChipTapped?(sendText) }
                 rowStack.addArrangedSubview(chip)
-                rowChips.append(chip)
-            }
-            // Ensure chips in the same row share an equal height
-            if rowChips.count == 2 {
-                rowChips[1].heightAnchor.constraint(equalTo: rowChips[0].heightAnchor).isActive = true
             }
             outerStack.addArrangedSubview(rowStack)
             rowStack.widthAnchor.constraint(equalTo: outerStack.widthAnchor).isActive = true
         }
+
+        setContentHuggingPriority(.required, for: .vertical)
+        setContentCompressionResistancePriority(.required, for: .vertical)
+    }
+
+    override var intrinsicContentSize: NSSize {
+        guard let outerStackView else { return super.intrinsicContentSize }
+        let fitting = outerStackView.fittingSize
+        return NSSize(width: NSView.noIntrinsicMetric, height: fitting.height)
     }
 }
 

@@ -84,6 +84,11 @@ struct SettingsView: View {
 
                     Text("Starter pack searches the bundled archive on your Mac. The official archive uses your own Lenny access through Claude Code, Codex, or a bearer token.")
                         .settingsCaption()
+
+                    if AppSettings.hasOfficialArchiveConnectionInSettings {
+                        Text("A bearer token is currently saved in Settings, so Lenny will use the official archive even if Starter pack is selected above.")
+                            .settingsCaption()
+                    }
                 }
 
                 // MCP Configuration
@@ -144,14 +149,17 @@ struct SettingsView: View {
 
     private var statusText: String {
         let trimmed = officialToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return "Using the official archive with the saved Settings token"
+        }
         if archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue {
             return "Using the starter pack on this device"
         }
-        return trimmed.isEmpty ? "Using the official archive through your CLI setup" : "Using the official archive with a bearer token"
+        return "Using the official archive through your CLI setup"
     }
 
     private var statusIcon: String {
-        archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue
+        (officialToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue)
             ? "internaldrive.fill" : "network"
     }
 

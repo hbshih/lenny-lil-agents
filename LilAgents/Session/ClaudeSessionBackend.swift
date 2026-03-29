@@ -60,7 +60,7 @@ extension ClaudeSession {
 
             let preferredTransport = AppSettings.preferredTransport
             let preferenceKey = self.backendPreferenceKey(environment: environment)
-            SessionDebugLogger.log("backend", "resolving preferred backend. archiveMode=\(AppSettings.archiveAccessMode.rawValue) preferredTransport=\(preferredTransport.rawValue)")
+            SessionDebugLogger.log("backend", "resolving preferred backend. archiveMode=\(AppSettings.effectiveArchiveAccessMode.rawValue) preferredTransport=\(preferredTransport.rawValue)")
 
             if let selectedBackend = self.selectedBackend,
                self.selectedBackendPreferenceKey == preferenceKey {
@@ -115,7 +115,7 @@ extension ClaudeSession {
 
     func backendPreferenceKey(environment: [String: String]) -> String {
         [
-            AppSettings.archiveAccessMode.rawValue,
+            AppSettings.effectiveArchiveAccessMode.rawValue,
             AppSettings.preferredTransport.rawValue,
             AppSettings.preferredClaudeModel.rawValue,
             AppSettings.preferredCodexModel.rawValue,
@@ -245,7 +245,7 @@ extension ClaudeSession {
     }
 
     func backendStatusMessage(for backend: Backend) -> String {
-        let archiveLabel = AppSettings.archiveAccessMode == .starterPack
+        let archiveLabel = AppSettings.effectiveArchiveAccessMode == .starterPack
             ? "bundled starter archive"
             : "official Lenny MCP"
         switch backend {

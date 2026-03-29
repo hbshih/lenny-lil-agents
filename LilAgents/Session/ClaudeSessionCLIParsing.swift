@@ -15,8 +15,9 @@ extension ClaudeSession {
 
     func prepareAssistantOutput(_ outputText: String) -> String {
         if let payload = parseStructuredAssistantPayload(from: outputText) {
-            if pendingExperts.isEmpty, payload.suggestExpertPrompt {
-                let structuredExperts = payload.suggestedExperts.compactMap { name -> ResponderExpert? in
+            assistantExplicitlyRequestedExperts = payload.suggestExpertPrompt
+            pendingExperts = payload.suggestExpertPrompt
+                ? Array(payload.suggestedExperts.compactMap { name -> ResponderExpert? in
                     guard let avatarPath = avatarPath(for: name) else { return nil }
                     let context = "Explicitly suggested by the assistant in the latest answer."
                     return ResponderExpert(
@@ -25,20 +26,21 @@ extension ClaudeSession {
                         archiveContext: context,
                         responseScript: responseScript(for: name, context: context)
                     )
-                }
+                }.prefix(3))
+                : []
 
-                if !structuredExperts.isEmpty {
-                    pendingExperts = Array(structuredExperts.prefix(3))
-                    let names = pendingExperts.map(\.name).joined(separator: ", ")
-                    SessionDebugLogger.log("experts", "parsed \(pendingExperts.count) JSON expert candidate(s) from assistant output: \(names)")
-                }
+            if payload.suggestExpertPrompt {
+                let names = pendingExperts.map(\.name).joined(separator: ", ")
+                SessionDebugLogger.log("experts", "parsed \(pendingExperts.count) JSON expert candidate(s) from assistant output: \(names)")
+            } else {
+                SessionDebugLogger.log("experts", "assistant explicitly declined expert suggestions")
             }
 
             return payload.answerMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
         let structuredNames = structuredExpertSuggestionNames(from: outputText)
-        if pendingExperts.isEmpty, !structuredNames.isEmpty {
+        if !structuredNames.isEmpty {
             let structuredExperts = structuredNames.compactMap { name -> ResponderExpert? in
                 guard let avatarPath = avatarPath(for: name) else { return nil }
                 let context = "Explicitly suggested by the assistant in the latest answer."
@@ -50,11 +52,10 @@ extension ClaudeSession {
                 )
             }
 
-            if !structuredExperts.isEmpty {
-                pendingExperts = Array(structuredExperts.prefix(3))
-                let names = pendingExperts.map(\.name).joined(separator: ", ")
-                SessionDebugLogger.log("experts", "parsed \(pendingExperts.count) structured expert candidate(s) from assistant output: \(names)")
-            }
+            assistantExplicitlyRequestedExperts = !structuredExperts.isEmpty
+            pendingExperts = Array(structuredExperts.prefix(3))
+            let names = pendingExperts.map(\.name).joined(separator: ", ")
+            SessionDebugLogger.log("experts", "parsed \(pendingExperts.count) structured expert candidate(s) from assistant output: \(names)")
         }
 
         return cleanedAssistantText(outputText)
@@ -394,9 +395,70 @@ extension ClaudeSession {
         let wrapped = "\"\(raw)\""
         guard let data = wrapped.data(using: .utf8),
               let decoded = try? JSONSerialization.jsonObject(with: data) as? String else {
-            return nil
+            return extractLooselyEncodedJSONStringValue(forKey: key, from: outputText)
         }
         return decoded
+    }
+
+    private func extractLooselyEncodedJSONStringValue(forKey key: String, from outputText: String) -> String? {
+        let source = extractStructuredJSONCandidate(from: outputText) ?? outputText
+        guard let keyRange = source.range(of: "\"\(key)\"") else { return nil }
+        guard let colonIndex = source[keyRange.upperBound...].firstIndex(of: ":") else { return nil }
+
+        var cursor = source.index(after: colonIndex)
+        while cursor < source.endIndex, source[cursor].isWhitespace {
+            cursor = source.index(after: cursor)
+        }
+
+        guard cursor < source.endIndex, source[cursor] == "\"" else { return nil }
+        cursor = source.index(after: cursor)
+
+        var value = ""
+        var escaping = false
+
+        while cursor < source.endIndex {
+            let character = source[cursor]
+
+            if escaping {
+                switch character {
+                case "n":
+                    value.append("\n")
+                case "r":
+                    value.append("\r")
+                case "t":
+                    value.append("\t")
+                default:
+                    value.append(character)
+                }
+                escaping = false
+                cursor = source.index(after: cursor)
+                continue
+            }
+
+            if character == "\\" {
+                escaping = true
+                cursor = source.index(after: cursor)
+                continue
+            }
+
+            if character == "\"" {
+                let remainder = source[source.index(after: cursor)...]
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let terminators = [
+                    ",\"suggested_experts\"",
+                    ",\"suggest_expert_prompt\"",
+                    "}",
+                ]
+                if terminators.contains(where: { remainder.hasPrefix($0) }) {
+                    return value
+                }
+            }
+
+            value.append(character)
+            cursor = source.index(after: cursor)
+        }
+
+        return value.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func extractStructuredStringArray(forKey key: String, from outputText: String) -> [String] {

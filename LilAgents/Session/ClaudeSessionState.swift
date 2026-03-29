@@ -75,6 +75,7 @@ extension ClaudeSession {
     func failTurn(_ text: String, conversationKey: String) {
         isBusy = false
         pendingExperts.removeAll()
+        assistantExplicitlyRequestedExperts = false
         appendHistory(Message(role: .error, text: text), to: conversationKey)
         onError?(text)
         onTurnComplete?()

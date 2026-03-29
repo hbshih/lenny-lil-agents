@@ -25,6 +25,7 @@ final class ClaudeSession {
     var selectedBackend: Backend?
     var selectedBackendPreferenceKey: String?
     var pendingExperts: [ResponderExpert] = []
+    var assistantExplicitlyRequestedExperts = false
 
     var onText: ((String) -> Void)?
     var onError: ((String) -> Void)?
