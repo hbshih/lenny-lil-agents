@@ -34,14 +34,17 @@ LilAgents/
   Session/     — all AI / MCP / session logic
   Character/   — WalkerCharacter and all extensions
   Terminal/    — chat UI (TerminalView and extensions)
-  Support/     — shared theme and view utilities
+  Support/     — shared theme, avatar, and view utilities
 ```
 
 ## Top-Level Structure
 
 ### App shell
 - `LilAgents/App/LilAgentsApp.swift`
-  App entry point, menu bar setup, app delegate, expert status items, theme/display controls, and the Settings window host.
+  App entry point, app delegate hookup, theme/display controls, and the Settings window host.
+
+- `LilAgents/App/LilAgentsApp+MenuBar.swift`
+  Menu bar and Sparkle update-delegate helpers split out of the app entry file.
 
 - `LilAgents/App/LilAgentsController.swift`
   Coordinates all on-screen characters, display-link ticking, Dock geometry, expert focus, and companion guest avatars.
@@ -71,6 +74,9 @@ LilAgents/
 - `LilAgents/Character/WalkerCharacterSessionWiring.swift`
   Wires `ClaudeSession` callbacks (`onText`, `onTurnComplete`, `onError`, `onToolUse`, `onToolResult`, `onExpertsUpdated`) to the character and terminal UI, including live-status formatting and compact avatar-tag status text.
 
+- `LilAgents/Character/WalkerCharacterSessionWiring+Formatting.swift`
+  Shared formatting helpers for tool-input summaries, live-status copy, compact avatar-tag status text, and tool-result status text.
+
 - `LilAgents/Character/WalkerCharacterBubble.swift`
   Thinking/completion speech bubbles, sound playback, bubble positioning, and expert name tag height constant.
 
@@ -90,6 +96,9 @@ LilAgents/
 - `LilAgents/Session/ClaudeSessionModels.swift`
   Data models: `ResponderExpert`, `SessionAttachment`, `ConversationState`, `ExpertSuggestionEntry`, `SearchEnvelope`/`SearchResult`, and `Message`.
 
+- `LilAgents/Session/ClaudeSessionAttachmentModels.swift`
+  Attachment-specific session models extracted from the main session model file.
+
 - `LilAgents/Session/ClaudeSessionState.swift`
   Per-thread conversation state, per-reply expert suggestion state, prompt building (`buildInstructions`, `buildUserPrompt`, `buildConversationPrompt`, `buildInputContent`), and turn lifecycle (`finishTurn`, `failTurn`).
 
@@ -104,6 +113,15 @@ LilAgents/
 
 - `LilAgents/Session/ClaudeSessionCLIParsing.swift`
   CLI output parsing: structured JSON envelope extraction (`answer_markdown` / `suggested_experts`), fallback malformed-envelope recovery, Claude CLI stream-event parsing, result/metadata extraction, error normalization (with prompt-dump suppression), and `prepareAssistantOutput`.
+
+- `LilAgents/Session/ClaudeSessionCLIParsing+Structured.swift`
+  Structured JSON envelope parsing helpers.
+
+- `LilAgents/Session/ClaudeSessionCLIParsing+Stdout.swift`
+  stdout/stderr stream parsing helpers and event extraction.
+
+- `LilAgents/Session/ClaudeSessionCLIParsing+ValueExtraction.swift`
+  Value extraction helpers used by the CLI parser.
 
 - `LilAgents/Session/ClaudeSessionOpenAI.swift`
   Direct OpenAI Responses API transport: request construction, MCP tool injection, response handling, `mcp_call`/`mcp_list_tools` processing, status summaries, and message text extraction.
@@ -143,20 +161,44 @@ LilAgents/
 - `LilAgents/Terminal/TerminalView+Setup.swift`
   View creation, layout, controls, status bar, welcome suggestion panel, input field, attachment previews, pin/close actions, and drag/drop registration.
 
+- `LilAgents/Terminal/TerminalView+SetupActions.swift`
+  Focused setup-time actions split from the main setup file.
+
 - `LilAgents/Terminal/TerminalView+Panels.swift`
   Welcome suggestion panel population, live-status display, status clearing, transcript suggestion rendering, expert-button tap handling, and `NSTextViewDelegate` link-click routing.
 
 - `LilAgents/Terminal/TerminalViewLayout.swift`
   Layout constants, `relayoutPanels()` frame calculations, panel styling helpers, and panel visibility toggling.
 
-- `LilAgents/Terminal/TerminalView+Transcript.swift`
-  Transcript appending, replay, greeting restoration, per-reply expert suggestion rendering, compact picked-expert summaries, and transcript sizing/scroll behavior.
+- `LilAgents/Terminal/TerminalView+TranscriptSupport.swift`
+  Transcript support helpers shared across the transcript extensions.
+
+- `LilAgents/Terminal/TerminalView+TranscriptBehavior.swift`
+  Transcript appending, replay, greeting restoration, and sizing/scroll behavior.
+
+- `LilAgents/Terminal/TerminalView+TranscriptSuggestions.swift`
+  Per-reply expert suggestion rendering and picker state management.
+
+- `LilAgents/Terminal/TerminalView+TranscriptBubble.swift`
+  Transcript bubble assembly and placement.
+
+- `LilAgents/Terminal/TerminalView+TranscriptBubbleText.swift`
+  Bubble text layout and rendering helpers.
+
+- `LilAgents/Terminal/TerminalView+TranscriptAccessoryViews.swift`
+  Supporting accessory views used by transcript UI.
 
 - `LilAgents/Terminal/TerminalView+Attachments.swift`
   Drag-and-drop attachment extraction, attachment preview rendering, and removal controls.
 
 - `LilAgents/Terminal/TerminalMarkdownRenderer.swift`
   Markdown and inline markdown rendering for transcript output.
+
+- `LilAgents/Terminal/TerminalMarkdownRenderer+Parsing.swift`
+  Markdown tokenization, list parsing, and other block parsing helpers.
+
+- `LilAgents/Terminal/TerminalMarkdownRenderer+Formatting.swift`
+  Markdown block rendering helpers for headings, paragraphs, lists, quotes, code, and tables.
 
 - `LilAgents/Terminal/PaddedTextFieldCell.swift`
   Custom text field cell used by the composer input.
@@ -167,6 +209,9 @@ LilAgents/
 
 - `LilAgents/Support/CharacterContentView.swift`
   Transparent clickable character host view with alpha-aware hit testing.
+
+- `LilAgents/Support/AvatarImageUtilities.swift`
+  Avatar image loading, caching, and conversion helpers.
 
 ## Asset Structure
 
@@ -245,6 +290,9 @@ Start with:
 - `LilAgents/Session/ClaudeSessionBackend.swift`
 - `LilAgents/Session/ClaudeSessionCLI.swift`
 - `LilAgents/Session/ClaudeSessionCLIParsing.swift`
+- `LilAgents/Session/ClaudeSessionCLIParsing+Structured.swift`
+- `LilAgents/Session/ClaudeSessionCLIParsing+Stdout.swift`
+- `LilAgents/Session/ClaudeSessionCLIParsing+ValueExtraction.swift`
 - `LilAgents/Session/ClaudeSessionOpenAI.swift`
 - `LilAgents/Session/ClaudeSessionState.swift`
 
@@ -263,14 +311,24 @@ Start with:
 - `LilAgents/Character/WalkerCharacterBubble.swift`
 - `LilAgents/Character/WalkerCharacterMovement.swift`
 - `LilAgents/Character/WalkerCharacterExpertTag.swift`
+- `LilAgents/Character/WalkerCharacterSessionWiring.swift`
+- `LilAgents/Character/WalkerCharacterSessionWiring+Formatting.swift`
 
 ### If you want to change the chat popup
 Start with:
 - `LilAgents/Terminal/TerminalView+Setup.swift`
+- `LilAgents/Terminal/TerminalView+SetupActions.swift`
 - `LilAgents/Terminal/TerminalView+Panels.swift`
-- `LilAgents/Terminal/TerminalView+Transcript.swift`
+- `LilAgents/Terminal/TerminalView+TranscriptSupport.swift`
+- `LilAgents/Terminal/TerminalView+TranscriptBehavior.swift`
+- `LilAgents/Terminal/TerminalView+TranscriptSuggestions.swift`
+- `LilAgents/Terminal/TerminalView+TranscriptBubble.swift`
+- `LilAgents/Terminal/TerminalView+TranscriptBubbleText.swift`
+- `LilAgents/Terminal/TerminalView+TranscriptAccessoryViews.swift`
 - `LilAgents/Terminal/TerminalViewLayout.swift`
 - `LilAgents/Terminal/TerminalMarkdownRenderer.swift`
+- `LilAgents/Terminal/TerminalMarkdownRenderer+Parsing.swift`
+- `LilAgents/Terminal/TerminalMarkdownRenderer+Formatting.swift`
 - `LilAgents/Character/WalkerCharacterPopoverWindow.swift`
 
 ### If you want to change menu bar behavior
@@ -293,14 +351,16 @@ Start with:
 ## File Size Overview
 
 After the refactor, responsibilities are well-split across focused files. The larger files are:
-- `LilAgents/ClaudeSessionBackend.swift` — backend discovery and environment resolution
-- `LilAgents/ClaudeSessionTransport.swift` — top-level send/start routing and starter-pack search
-- `LilAgents/ClaudeSessionExpertResolution.swift` — expert extraction from MCP payloads
-- `LilAgents/ClaudeSessionExpertCatalog.swift` — expert name catalog and avatar management
-- `LilAgents/TerminalView+Setup.swift` — terminal view construction
-- `LilAgents/WalkerCharacterVisuals.swift` — visual effects
-- `LilAgents/WalkerCharacterBubble.swift` — bubbles and sound
-- `LilAgents/WalkerCharacterPopoverWindow.swift` — popover window assembly
+- `LilAgents/Session/ClaudeSessionBackend.swift` — backend discovery and environment resolution
+- `LilAgents/Session/ClaudeSessionTransport.swift` — top-level send/start routing and starter-pack search
+- `LilAgents/Session/ClaudeSessionExpertResolution.swift` — expert extraction from MCP payloads
+- `LilAgents/Session/ClaudeSessionExpertCatalog.swift` — expert name catalog and avatar management
+- `LilAgents/Terminal/TerminalView+Setup.swift` — terminal view construction
+- `LilAgents/Terminal/TerminalView+Panels.swift` — live-status and panel behavior
+- `LilAgents/Terminal/TerminalMarkdownRenderer+Formatting.swift` — markdown block rendering
+- `LilAgents/Character/WalkerCharacterVisuals.swift` — visual effects
+- `LilAgents/Character/WalkerCharacterBubble.swift` — bubbles and sound
+- `LilAgents/Character/WalkerCharacterPopoverWindow.swift` — popover window assembly
 
 ## Notes
 
@@ -315,31 +375,49 @@ After the refactor, responsibilities are well-split across focused files. The la
 ## Suggested Reading Order
 
 If you are new to the codebase, read in this order:
-1. `LilAgents/LilAgentsApp.swift`
-2. `LilAgents/LilAgentsController.swift`
-3. `LilAgents/AppSettings.swift`
-4. `LilAgents/SettingsView.swift`
-5. `LilAgents/WalkerCharacter.swift`
-6. `LilAgents/WalkerCharacterCore.swift`
-7. `LilAgents/WalkerCharacterPopover.swift`
-8. `LilAgents/WalkerCharacterPopoverWindow.swift`
-9. `LilAgents/WalkerCharacterSessionWiring.swift`
-10. `LilAgents/ClaudeSession.swift`
-11. `LilAgents/ClaudeSessionModels.swift`
-12. `LilAgents/ClaudeSessionState.swift`
-13. `LilAgents/ClaudeSessionBackend.swift`
-14. `LilAgents/ClaudeSessionTransport.swift`
-15. `LilAgents/ClaudeSessionCLI.swift`
-16. `LilAgents/ClaudeSessionCLIParsing.swift`
-17. `LilAgents/ClaudeSessionOpenAI.swift`
-18. `LilAgents/ClaudeSessionExpertResolution.swift`
-19. `LilAgents/ClaudeSessionExpertCatalog.swift`
-20. `LilAgents/ClaudeSessionExpertTextResolution.swift`
-21. `LilAgents/ClaudeSessionSupport.swift`
-22. `LilAgents/LocalArchive.swift`
-23. `LilAgents/SessionDebugLogger.swift`
-24. `LilAgents/TerminalView.swift`
-25. `LilAgents/TerminalView+Setup.swift`
-26. `LilAgents/TerminalView+Panels.swift`
-27. `LilAgents/TerminalViewLayout.swift`
-28. `LilAgents/TerminalView+Transcript.swift`
+1. `LilAgents/App/LilAgentsApp.swift`
+2. `LilAgents/App/LilAgentsApp+MenuBar.swift`
+3. `LilAgents/App/LilAgentsController.swift`
+4. `LilAgents/App/AppSettings.swift`
+5. `LilAgents/App/SettingsView.swift`
+6. `LilAgents/Character/WalkerCharacter.swift`
+7. `LilAgents/Character/WalkerCharacterCore.swift`
+8. `LilAgents/Character/WalkerCharacterPopover.swift`
+9. `LilAgents/Character/WalkerCharacterPopoverWindow.swift`
+10. `LilAgents/Character/WalkerCharacterSessionWiring.swift`
+11. `LilAgents/Character/WalkerCharacterSessionWiring+Formatting.swift`
+12. `LilAgents/Session/ClaudeSession.swift`
+13. `LilAgents/Session/ClaudeSessionModels.swift`
+14. `LilAgents/Session/ClaudeSessionAttachmentModels.swift`
+15. `LilAgents/Session/ClaudeSessionState.swift`
+16. `LilAgents/Session/ClaudeSessionBackend.swift`
+17. `LilAgents/Session/ClaudeSessionTransport.swift`
+18. `LilAgents/Session/ClaudeSessionCLI.swift`
+19. `LilAgents/Session/ClaudeSessionCLIParsing.swift`
+20. `LilAgents/Session/ClaudeSessionCLIParsing+Structured.swift`
+21. `LilAgents/Session/ClaudeSessionCLIParsing+Stdout.swift`
+22. `LilAgents/Session/ClaudeSessionCLIParsing+ValueExtraction.swift`
+23. `LilAgents/Session/ClaudeSessionOpenAI.swift`
+24. `LilAgents/Session/ClaudeSessionExpertResolution.swift`
+25. `LilAgents/Session/ClaudeSessionExpertCatalog.swift`
+26. `LilAgents/Session/ClaudeSessionExpertTextResolution.swift`
+27. `LilAgents/Session/ClaudeSessionSupport.swift`
+28. `LilAgents/Session/LocalArchive.swift`
+29. `LilAgents/Session/SessionDebugLogger.swift`
+30. `LilAgents/Terminal/TerminalView.swift`
+31. `LilAgents/Terminal/TerminalView+Setup.swift`
+32. `LilAgents/Terminal/TerminalView+SetupActions.swift`
+33. `LilAgents/Terminal/TerminalView+Panels.swift`
+34. `LilAgents/Terminal/TerminalViewLayout.swift`
+35. `LilAgents/Terminal/TerminalView+TranscriptSupport.swift`
+36. `LilAgents/Terminal/TerminalView+TranscriptBehavior.swift`
+37. `LilAgents/Terminal/TerminalView+TranscriptSuggestions.swift`
+38. `LilAgents/Terminal/TerminalView+TranscriptBubble.swift`
+39. `LilAgents/Terminal/TerminalView+TranscriptBubbleText.swift`
+40. `LilAgents/Terminal/TerminalView+TranscriptAccessoryViews.swift`
+41. `LilAgents/Terminal/TerminalView+Attachments.swift`
+42. `LilAgents/Terminal/TerminalView+AttachmentsParsing.swift`
+43. `LilAgents/Terminal/TerminalMarkdownRenderer.swift`
+44. `LilAgents/Terminal/TerminalMarkdownRenderer+Parsing.swift`
+45. `LilAgents/Terminal/TerminalMarkdownRenderer+Formatting.swift`
+46. `LilAgents/Terminal/PaddedTextFieldCell.swift`

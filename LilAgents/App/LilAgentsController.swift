@@ -135,23 +135,6 @@ class LilAgentsController {
         }
     }
 
-    private func companionPositions(count: Int, mainPosition: CGFloat) -> [CGFloat] {
-        switch count {
-        case 0:
-            return []
-        case 1:
-            return [mainPosition < 0.55 ? 0.78 : 0.22]
-        case 2:
-            return [0.2, 0.8]
-        default:
-            let candidates: [CGFloat] = [0.12, 0.3, 0.5, 0.7, 0.88]
-            let filtered = candidates.filter { abs($0 - mainPosition) > 0.08 }
-            let chosen = (filtered.isEmpty ? candidates : filtered)
-                .sorted { abs($0 - mainPosition) > abs($1 - mainPosition) }
-            return Array(chosen.prefix(count)).sorted()
-        }
-    }
-
     func currentDockMetrics() -> (screen: NSScreen, dockX: CGFloat, dockWidth: CGFloat, dockTopY: CGFloat)? {
         guard let screen = activeScreen else { return nil }
 

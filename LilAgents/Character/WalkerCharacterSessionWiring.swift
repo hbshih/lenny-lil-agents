@@ -50,7 +50,8 @@ extension WalkerCharacter {
         session.onToolUse = { [weak self] toolName, input in
             guard let self else { return }
             let summary = self.formatToolInput(input)
-            let experts = input["experts"] as? [ResponderExpert] ?? self.extractLiveExperts(from: summary)
+            let explicitExperts = input["experts"] as? [ResponderExpert] ?? []
+            let experts = self.mergedLiveExperts(explicitExperts, from: summary)
             let liveStatus = self.formatLiveStatus(toolName: toolName, summary: summary)
             self.noteLiveStatusEvent()
             self.setCurrentActivityStatus(liveStatus)
@@ -65,14 +66,20 @@ extension WalkerCharacter {
         session.onToolResult = { [weak self] summary, isError in
             if let self {
                 self.noteLiveStatusEvent()
-                self.setCurrentActivityStatus(summary)
+                let liveSummary = self.formatLiveResultStatus(summary, isError: isError)
+                if !liveSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    self.setCurrentActivityStatus(liveSummary)
+                } else {
+                    SessionDebugLogger.log("avatar-status", "ignored empty tool result summary while busy")
+                }
                 if isError {
                     self.stopLiveStatusFallback()
                 }
+                let experts = self.mergedLiveExperts([], from: summary)
+                self.terminalView?.appendToolResult(summary: summary, displaySummary: liveSummary, isError: isError, experts: experts)
+                self.updateExpertNameTag()
+                return
             }
-            let experts = self?.extractLiveExperts(from: summary) ?? []
-            self?.terminalView?.appendToolResult(summary: summary, isError: isError, experts: experts)
-            self?.updateExpertNameTag()
         }
 
         session.onProcessExit = { [weak self] in
@@ -89,81 +96,6 @@ extension WalkerCharacter {
         }
     }
 
-    func formatToolInput(_ input: [String: Any]) -> String {
-        if let summary = input["summary"] as? String { return summary }
-        if let cmd = input["command"] as? String { return cmd }
-        if let path = input["file_path"] as? String { return path }
-        if let pattern = input["pattern"] as? String { return pattern }
-        if let query = input["query"] as? String { return query }
-        return input.keys.sorted().prefix(3).joined(separator: ", ")
-    }
-
-    func formatLiveStatus(toolName: String, summary: String) -> String {
-        let lowered = toolName.lowercased()
-        let trimmedSummary = summary
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        func combine(prefix: String, summary: String) -> String {
-            guard !summary.isEmpty else { return prefix }
-            if summary.hasPrefix(prefix) || summary.contains(":") {
-                return summary
-            }
-            return "\(prefix): \(summary)"
-        }
-
-        if lowered.contains("planning") {
-            return trimmedSummary.isEmpty ? "On it…" : trimmedSummary
-        }
-        if lowered.contains("calling model") {
-            return combine(prefix: "Calling Model", summary: trimmedSummary)
-        }
-        if lowered.contains("calling mcp tool") {
-            return combine(prefix: "Calling MCP Tool", summary: trimmedSummary)
-        }
-        if lowered.contains("search") || lowered.contains("reading") || lowered.contains("browse") {
-            return combine(prefix: toolName, summary: trimmedSummary)
-        }
-        if lowered.contains("writing") || lowered.contains("generating") {
-            return trimmedSummary.isEmpty ? "Writing answer" : trimmedSummary
-        }
-        if lowered.contains("running") || lowered.contains("progress") || lowered.contains("thinking") {
-            return trimmedSummary.isEmpty ? toolName : trimmedSummary
-        }
-        return combine(prefix: toolName, summary: trimmedSummary)
-    }
-
-    func compactLiveStatus(_ status: String) -> String {
-        let trimmed = status.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return trimmed }
-
-        if trimmed.hasPrefix("Calling MCP Tool:") {
-            let toolPortion = trimmed.replacingOccurrences(of: "Calling MCP Tool: ", with: "")
-            let toolName = toolPortion.components(separatedBy: ":").first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "MCP"
-            return "MCP: \(toolName)"
-        }
-
-        if trimmed.hasPrefix("Calling Model:") {
-            let modelPortion = trimmed.replacingOccurrences(of: "Calling Model: ", with: "")
-            return String(modelPortion.prefix(32))
-        }
-
-        if trimmed.hasPrefix("Calling "), let range = trimmed.range(of: " in ") {
-            return String(trimmed[..<range.lowerBound])
-        }
-
-        if trimmed.lowercased().hasPrefix("writing") {
-            return "Writing"
-        }
-
-        if trimmed.lowercased().hasPrefix("loaded ") {
-            return "Loaded"
-        }
-
-        return String(trimmed.prefix(32))
-    }
-
     func setCurrentActivityStatus(_ status: String) {
         currentActivityStatus = status
 
@@ -171,7 +103,7 @@ extension WalkerCharacter {
         if compact.isEmpty {
             SessionDebugLogger.trace("avatar-status", "cleared")
         } else {
-            SessionDebugLogger.trace("avatar-status", "showing \(compact) | raw=\(status)")
+            SessionDebugLogger.trace("avatar-status", "showing \(compact)")
         }
     }
 
@@ -181,12 +113,33 @@ extension WalkerCharacter {
 
     func extractLiveExperts(from text: String) -> [ResponderExpert] {
         guard let session = claudeSession else { return [] }
-        let fromText = session.expertsFromAssistantText(text)
-        if !fromText.isEmpty {
-            session.livePresenceExperts = fromText
-            return fromText
-        }
+        let fromText = detectedLiveExperts(from: text)
+        if !fromText.isEmpty { return fromText }
         return session.livePresenceExperts
+    }
+
+    func detectedLiveExperts(from text: String) -> [ResponderExpert] {
+        guard let session = claudeSession else { return [] }
+        return session.expertsFromAssistantText(text)
+    }
+
+    func mergedLiveExperts(_ explicitExperts: [ResponderExpert], from text: String) -> [ResponderExpert] {
+        var merged: [ResponderExpert] = claudeSession?.livePresenceExperts ?? []
+
+        for expert in explicitExperts where !merged.contains(where: { $0.name == expert.name }) {
+            merged.append(expert)
+        }
+
+        let fromText = detectedLiveExperts(from: text)
+        for expert in fromText where !merged.contains(where: { $0.name == expert.name }) {
+            merged.append(expert)
+        }
+
+        if !merged.isEmpty {
+            claudeSession?.livePresenceExperts = Array(merged.prefix(3))
+        }
+
+        return Array(merged.prefix(3))
     }
 
     func startLiveStatusFallback() {

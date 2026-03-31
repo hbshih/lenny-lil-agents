@@ -77,43 +77,42 @@ extension ClaudeSession {
         switch toolName {
         case "search_content":
             let query = (arguments["query"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "the archive"
-            return ("Calling MCP Tool", "search_content: \(query)")
+            return ("Calling MCP Tool", "Searching LennyData for \(query)")
         case "read_excerpt":
             let filename = readableSourceName(from: arguments["filename"] as? String)
             let query = (arguments["query"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let query, !query.isEmpty {
-                return ("Calling MCP Tool", "read_excerpt: \(filename) for \(query)")
+                return ("Calling MCP Tool", "Reading excerpts from \(filename) about \(query)")
             }
-            return ("Calling MCP Tool", "read_excerpt: \(filename)")
+            return ("Calling MCP Tool", "Reading excerpts from \(filename)")
         case "read_content":
             let filename = readableSourceName(from: arguments["filename"] as? String)
-            return ("Calling MCP Tool", "read_content: \(filename)")
+            return ("Calling MCP Tool", "Reading full context from \(filename)")
         case "list_content":
-            return ("Calling MCP Tool", "list_content: \(summarizeArguments(arguments))")
+            return ("Calling MCP Tool", "Checking available archive sources")
         default:
-            return ("Calling MCP Tool", "\(toolName): \(summarizeArguments(arguments))")
+            return ("Calling MCP Tool", "Using \(toolName): \(summarizeArguments(arguments))")
         }
     }
 
     func processResultDisplay(for toolName: String, arguments: [String: Any], output: Any?) -> String {
         switch toolName {
         case "search_content":
-            let base = summarizeMCPOutput(output)
             let experts = expertsFromMCPPayloads(arguments: arguments, output: output).map(\.name)
             if experts.isEmpty {
-                return base
+                return "Found archive matches"
             }
-            return "\(base) from \(experts.prefix(3).joined(separator: ", "))"
+            return "Found archive matches from \(experts.prefix(3).joined(separator: ", "))"
         case "read_excerpt":
             let experts = expertsFromMCPPayloads(arguments: arguments, output: output).map(\.name)
             if let first = experts.first {
-                return "Loaded excerpt from \(first)"
+                return "Found relevant excerpts from \(first)"
             }
-            return "Loaded excerpt"
+            return "Found relevant excerpts"
         case "read_content":
             let experts = expertsFromMCPPayloads(arguments: arguments, output: output).map(\.name)
             if let first = experts.first {
-                return "Loaded full context for \(first)"
+                return "Loaded full context from \(first)"
             }
             return "Loaded full article or transcript"
         default:

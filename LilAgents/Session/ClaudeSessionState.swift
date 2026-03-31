@@ -107,6 +107,12 @@ extension ClaudeSession {
         `messages` should be a transcript-ready array of separate speaker messages.
         Use `kind: "lenny"` for Lil-Lenny orchestration messages and `kind: "expert"` for specialist responses.
         When one or more experts are relevant, Lil-Lenny should briefly call on them first, then each expert should speak in a separate message.
+        If you materially relied on 2 or more experts, do not collapse them into one Lil-Lenny summary block.
+        In that case, return:
+        1. one short Lil-Lenny orchestration message
+        2. one separate expert message for each expert you materially relied on
+        Keep expert messages concise if needed, but preserve separate speakers.
+        `suggested_experts` should match the experts who actually spoke or materially informed the answer.
         If no specialist is warranted, return a single Lil-Lenny message.
         `suggested_experts` should include up to 3 relevant archive experts you explicitly relied on or cited.
         If there are no useful expert suggestions, return an empty array and set `suggest_expert_prompt` to false.

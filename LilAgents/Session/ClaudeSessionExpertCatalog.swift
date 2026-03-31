@@ -103,6 +103,43 @@ extension ClaudeSession {
         return Array(experts.prefix(3))
     }
 
+    func expertsFromTransport(payload: Any?, textCandidates: [String]) -> [ResponderExpert] {
+        var orderedNames: [String] = []
+
+        func record(_ rawNames: [String]) {
+            for rawName in rawNames {
+                guard let canonical = canonicalExpertName(for: rawName),
+                      !orderedNames.contains(canonical) else { continue }
+                orderedNames.append(canonical)
+            }
+        }
+
+        record(expertNames(in: payload))
+        for text in textCandidates where !text.isEmpty {
+            record(expertNames(fromFreeformText: text))
+        }
+
+        var experts: [ResponderExpert] = []
+        for name in orderedNames {
+            guard let avatarPath = avatarPath(for: name),
+                  !experts.contains(where: { $0.name == name }) else { continue }
+
+            let context = """
+            Mentioned during live transport:
+            \(textCandidates.joined(separator: "\n").prefix(320))
+            """
+
+            experts.append(ResponderExpert(
+                name: name,
+                avatarPath: avatarPath,
+                archiveContext: context,
+                responseScript: responseScript(for: name, context: context)
+            ))
+        }
+
+        return Array(experts.prefix(3))
+    }
+
     func structuredExpertSuggestionNames(from text: String) -> [String] {
         guard let startRange = text.range(of: "<LIL_AGENTS_EXPERTS>"),
               let endRange = text.range(of: "</LIL_AGENTS_EXPERTS>"),

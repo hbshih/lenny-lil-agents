@@ -150,11 +150,16 @@ extension TerminalView {
         suggestionsView.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
         suggestionsView.heightAnchor.constraint(equalToConstant: expertSuggestionCardHeight(for: currentExpertSuggestions.count)).isActive = true
         transcriptSuggestionView = suggestionsView
-        scrollToBottom()
+        scrollLatestBubbleIntoView()
     }
 
     func setLiveStatus(_ text: String, isBusy: Bool, isError: Bool = false, experts: [ResponderExpert] = []) {
-        guard !text.isEmpty else {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            if isBusy {
+                SessionDebugLogger.log("ui", "ignoring empty live status update while busy")
+                return
+            }
             clearLiveStatus()
             return
         }
@@ -174,7 +179,7 @@ extension TerminalView {
         sendButton.layer?.backgroundColor = sendButton.normalBg
         sendButton.contentTintColor = isBusy ? theme.textPrimary : .white
 
-        renderTranscriptLiveStatus(text, experts: experts)
+        renderTranscriptLiveStatus(trimmed, experts: experts)
         refreshComposerContentLayout(showingStatus: true)
     }
 

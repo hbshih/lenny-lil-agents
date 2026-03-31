@@ -83,13 +83,19 @@ extension ClaudeSession {
                 if let data = line.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let event = self.claudeCLIStreamEvent(from: json) {
-                    let experts = self.expertsFromAssistantText(event.summary)
+                    let experts = self.expertsFromTransport(
+                        payload: json,
+                        textCandidates: [event.summary, line]
+                    )
                     self.onToolUse?(event.title, ["summary": event.summary, "experts": experts])
                 } else if !line.hasPrefix("{") && !line.hasPrefix("}") {
                     let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !trimmed.isEmpty else { return }
                     let summary = String(trimmed.prefix(80))
-                    let experts = self.expertsFromAssistantText(summary)
+                    let experts = self.expertsFromTransport(
+                        payload: ["message": trimmed],
+                        textCandidates: [trimmed, summary]
+                    )
                     self.onToolUse?("Calling Model", ["summary": summary, "experts": experts])
                 }
             }
