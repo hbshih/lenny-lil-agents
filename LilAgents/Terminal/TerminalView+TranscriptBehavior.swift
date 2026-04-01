@@ -1,6 +1,18 @@
 import AppKit
 
 extension TerminalView {
+    private func isTranscriptNearBottom(threshold: CGFloat = 48) -> Bool {
+        resizeTranscriptToFitContent()
+        guard let docView = scrollView.documentView else {
+            return true
+        }
+
+        let visibleHeight = scrollView.contentSize.height
+        let maxOffsetY = max(0, docView.bounds.height - visibleHeight)
+        let currentOffsetY = scrollView.contentView.bounds.origin.y
+        return maxOffsetY - currentOffsetY <= threshold
+    }
+
     private func scrollTranscriptViewIntoView(
         _ view: NSView,
         topPadding: CGFloat = 0,
@@ -140,8 +152,7 @@ extension TerminalView {
             text: attrText,
             isUser: false,
             speaker: TranscriptSpeaker(name: expert.name, avatarPath: expert.avatarPath, kind: .expert),
-            showsCopyAction: false,
-            showsSpeakerHeader: false
+            showsCopyAction: false
         )
         currentAssistantText = ""
         scrollToTop()
@@ -212,14 +223,19 @@ extension TerminalView {
     }
 
     func renderTranscriptLiveStatus(_ text: String, experts: [ResponderExpert] = []) {
+        let shouldStickToBottom = isTranscriptNearBottom(threshold: 72)
         if let statusView = transcriptLiveStatusView as? TranscriptStatusView {
             statusView.update(text: text, experts: experts)
-            scrollTranscriptViewIntoView(statusView, topPadding: 12, bottomPadding: 20, preferBottomEdge: true)
         } else {
             let statusView = TranscriptStatusView(theme: theme, text: text, experts: experts)
             transcriptStack.addArrangedSubview(statusView)
             statusView.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
             transcriptLiveStatusView = statusView
+        }
+
+        if shouldStickToBottom {
+            scrollToBottom()
+        } else if let statusView = transcriptLiveStatusView {
             scrollTranscriptViewIntoView(statusView, topPadding: 12, bottomPadding: 20, preferBottomEdge: true)
         }
     }

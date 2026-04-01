@@ -4,12 +4,14 @@ extension ChatBubbleView {
     func setText(_ newText: NSAttributedString) {
         configureTextContainer()
         textView.textStorage?.setAttributedString(newText)
+        updateTextAlignment()
         recalculateSize()
     }
 
     func appendText(_ newText: NSAttributedString) {
         configureTextContainer()
         textView.textStorage?.append(newText)
+        updateTextAlignment()
         recalculateSize()
     }
 
@@ -27,6 +29,29 @@ extension ChatBubbleView {
     func configureTextContainer() {
         textView.textContainer?.widthTracksTextView = false
         textView.textContainer?.containerSize = NSSize(width: 1000, height: CGFloat.greatestFiniteMagnitude)
+    }
+
+    func updateTextAlignment() {
+        guard let storage = textView.textStorage else { return }
+
+        let shouldLeftAlign = isUser && (storage.string.contains("\n") || storage.length > 72)
+        let alignment: NSTextAlignment = shouldLeftAlign ? .left : (isUser ? .right : .left)
+
+        let fullRange = NSRange(location: 0, length: storage.length)
+        storage.beginEditing()
+        storage.enumerateAttribute(.paragraphStyle, in: fullRange) { value, range, _ in
+            let style = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+            style.alignment = alignment
+            if style.lineSpacing == 0 {
+                style.lineSpacing = 4
+            }
+            if style.paragraphSpacing == 0 {
+                style.paragraphSpacing = 7
+            }
+            storage.addAttribute(.paragraphStyle, value: style, range: range)
+        }
+        storage.endEditing()
+        textView.alignment = alignment
     }
 
     func recalculateSize() {

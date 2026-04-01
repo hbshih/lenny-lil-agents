@@ -10,7 +10,7 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
     private let contentColumn = NSStackView()
     private let copyButton = HoverButton(title: "", target: nil, action: nil)
     private let followUpButton = HoverButton(title: "", target: nil, action: nil)
-    private let isUser: Bool
+    let isUser: Bool
     private let showsSpeakerHeader: Bool
     private let theme: PopoverTheme
     var textWidthConstraint: NSLayoutConstraint?
@@ -182,6 +182,7 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
         configureHeaderVisibility()
         configureTextContainer()
         textView.textStorage?.setAttributedString(text)
+        updateTextAlignment()
         configureActions(for: speaker)
         recalculateSize()
     }
