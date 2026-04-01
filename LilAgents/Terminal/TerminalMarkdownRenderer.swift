@@ -66,6 +66,10 @@ enum TerminalMarkdownRenderer {
             appendCodeBlock(codeLines, to: result, theme: t)
         }
 
+        while result.string.hasSuffix("\n") {
+            result.deleteCharacters(in: NSRange(location: result.length - 1, length: 1))
+        }
+
         return result
     }
 }

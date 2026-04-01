@@ -191,7 +191,8 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
         if let image {
             let avatarView = NSImageView()
             avatarView.image = image
-            avatarView.imageScaling = .scaleAxesIndependently
+            avatarView.imageScaling = .scaleProportionallyUpOrDown
+            avatarView.imageAlignment = .alignCenter
             avatarView.translatesAutoresizingMaskIntoConstraints = false
             avatarContainer.addSubview(avatarView)
             NSLayoutConstraint.activate([

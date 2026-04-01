@@ -176,11 +176,16 @@ extension WalkerCharacter {
         terminal.autoresizingMask = [.width, .height]
         terminal.isPinnedOpen = isPopoverPinned
         terminal.onSendMessage = { [weak self] message, attachments in
+            self?.noteLiveStatusEvent()
+            self?.setCurrentActivityStatus("Getting things moving…")
+            self?.updateExpertNameTag()
             self?.claudeSession?.focusedExpert = self?.focusedExpert
             self?.claudeSession?.send(message: message, attachments: attachments)
         }
         terminal.onStopRequested = { [weak self] in
             self?.claudeSession?.cancelActiveTurn()
+            self?.setCurrentActivityStatus("")
+            self?.terminalView?.endStreaming()
             self?.terminalView?.clearLiveStatus()
         }
         terminal.onReturnToLenny = { [weak self] in

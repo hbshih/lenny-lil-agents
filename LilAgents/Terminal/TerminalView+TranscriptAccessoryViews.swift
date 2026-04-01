@@ -1,90 +1,18 @@
 import AppKit
 
-class TranscriptStatusSpinnerView: NSView {
-    private let theme: PopoverTheme
-    private let trackLayer = CAShapeLayer()
-    private let arcLayer = CAShapeLayer()
-
-    init(theme: PopoverTheme) {
-        self.theme = theme
-        super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.clear.cgColor
-        setupLayers()
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func layout() {
-        super.layout()
-        updatePaths()
-    }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        if window == nil {
-            layer?.removeAnimation(forKey: "spin")
-        } else {
-            startAnimating()
-        }
-    }
-
-    private func setupLayers() {
-        trackLayer.fillColor = NSColor.clear.cgColor
-        trackLayer.strokeColor = theme.separatorColor.withAlphaComponent(0.22).cgColor
-        trackLayer.lineWidth = 2
-        trackLayer.lineCap = .round
-
-        arcLayer.fillColor = NSColor.clear.cgColor
-        arcLayer.strokeColor = theme.accentColor.cgColor
-        arcLayer.lineWidth = 2
-        arcLayer.lineCap = .round
-        arcLayer.strokeStart = 0.12
-        arcLayer.strokeEnd = 0.78
-
-        layer?.addSublayer(trackLayer)
-        layer?.addSublayer(arcLayer)
-        startAnimating()
-    }
-
-    private func updatePaths() {
-        let inset: CGFloat = 2
-        let rect = bounds.insetBy(dx: inset, dy: inset)
-        let path = NSBezierPath(ovalIn: rect).cgPath
-        trackLayer.frame = bounds
-        arcLayer.frame = bounds
-        trackLayer.path = path
-        arcLayer.path = path
-    }
-
-    private func startAnimating() {
-        guard layer?.animation(forKey: "spin") == nil else { return }
-        let spin = CABasicAnimation(keyPath: "transform.rotation")
-        spin.fromValue = 0
-        spin.toValue = Double.pi * 2
-        spin.duration = 0.9
-        spin.repeatCount = .infinity
-        spin.timingFunction = CAMediaTimingFunction(name: .linear)
-        layer?.add(spin, forKey: "spin")
-    }
-}
-
 class TranscriptStatusView: NSView {
     private let theme: PopoverTheme
-    private let contentStack = NSStackView()
+    private let headerStack = NSStackView()
     private let avatarContainer = NSView()
-    private let detailStack = NSStackView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let activityBadge = NSView()
     private let activityStack = NSStackView()
-    private let spinnerView: TranscriptStatusSpinnerView
+    private let spinnerView = NSProgressIndicator()
     private let textLabel = NSTextField(labelWithString: "")
     private var avatarWidthConstraint: NSLayoutConstraint?
 
     init(theme: PopoverTheme, text: String, experts: [ResponderExpert] = []) {
         self.theme = theme
-        self.spinnerView = TranscriptStatusSpinnerView(theme: theme)
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         setupViews()
@@ -94,29 +22,22 @@ class TranscriptStatusView: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setupViews() {
-        let preferredWidth = contentStack.widthAnchor.constraint(lessThanOrEqualToConstant: 468)
+        let preferredWidth = widthAnchor.constraint(lessThanOrEqualToConstant: 468)
         preferredWidth.priority = .defaultHigh
 
-        contentStack.orientation = .horizontal
-        contentStack.alignment = .top
-        contentStack.spacing = 12
-        contentStack.edgeInsets = NSEdgeInsetsZero
-        contentStack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(contentStack)
+        headerStack.orientation = .horizontal
+        headerStack.alignment = .centerY
+        headerStack.spacing = 10
+        headerStack.edgeInsets = NSEdgeInsetsZero
+        headerStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(headerStack)
 
         avatarContainer.translatesAutoresizingMaskIntoConstraints = false
         avatarContainer.setContentHuggingPriority(.required, for: .horizontal)
         avatarContainer.setContentCompressionResistancePriority(.required, for: .horizontal)
         avatarWidthConstraint = avatarContainer.widthAnchor.constraint(equalToConstant: 28)
         avatarWidthConstraint?.isActive = true
-        contentStack.addArrangedSubview(avatarContainer)
-
-        detailStack.orientation = .vertical
-        detailStack.alignment = .leading
-        detailStack.spacing = 6
-        detailStack.edgeInsets = NSEdgeInsetsZero
-        detailStack.translatesAutoresizingMaskIntoConstraints = false
-        contentStack.addArrangedSubview(detailStack)
+        headerStack.addArrangedSubview(avatarContainer)
 
         titleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         titleLabel.textColor = theme.accentColor
@@ -124,19 +45,15 @@ class TranscriptStatusView: NSView {
         titleLabel.maximumNumberOfLines = 2
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        detailStack.addArrangedSubview(titleLabel)
+        headerStack.addArrangedSubview(titleLabel)
 
         activityBadge.wantsLayer = true
         activityBadge.translatesAutoresizingMaskIntoConstraints = false
-        activityBadge.layer?.backgroundColor = theme.inputBg.withAlphaComponent(0.68).cgColor
-        activityBadge.layer?.borderWidth = 1
-        activityBadge.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.14).cgColor
-        activityBadge.layer?.cornerRadius = 17
-        activityBadge.layer?.shadowColor = theme.accentColor.withAlphaComponent(0.08).cgColor
-        activityBadge.layer?.shadowOpacity = 1
-        activityBadge.layer?.shadowRadius = 8
-        activityBadge.layer?.shadowOffset = CGSize(width: 0, height: -1)
-        detailStack.addArrangedSubview(activityBadge)
+        activityBadge.layer?.backgroundColor = theme.inputBg.withAlphaComponent(0.72).cgColor
+        activityBadge.layer?.borderWidth = 0.75
+        activityBadge.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.18).cgColor
+        activityBadge.layer?.cornerRadius = 18
+        addSubview(activityBadge)
 
         activityStack.orientation = .horizontal
         activityStack.alignment = .centerY
@@ -145,6 +62,11 @@ class TranscriptStatusView: NSView {
         activityStack.translatesAutoresizingMaskIntoConstraints = false
         activityBadge.addSubview(activityStack)
 
+        spinnerView.style = .spinning
+        spinnerView.controlSize = .small
+        spinnerView.isIndeterminate = true
+        spinnerView.isDisplayedWhenStopped = false
+        spinnerView.translatesAutoresizingMaskIntoConstraints = false
         activityStack.addArrangedSubview(spinnerView)
 
         textLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
@@ -158,18 +80,22 @@ class TranscriptStatusView: NSView {
         NSLayoutConstraint.activate([
             avatarContainer.heightAnchor.constraint(equalToConstant: 28),
 
-            activityStack.topAnchor.constraint(equalTo: activityBadge.topAnchor, constant: 8),
-            activityStack.leadingAnchor.constraint(equalTo: activityBadge.leadingAnchor, constant: 12),
-            activityStack.trailingAnchor.constraint(equalTo: activityBadge.trailingAnchor, constant: -14),
-            activityStack.bottomAnchor.constraint(equalTo: activityBadge.bottomAnchor, constant: -8),
+            activityStack.topAnchor.constraint(equalTo: activityBadge.topAnchor, constant: 10),
+            activityStack.leadingAnchor.constraint(equalTo: activityBadge.leadingAnchor, constant: 14),
+            activityStack.trailingAnchor.constraint(equalTo: activityBadge.trailingAnchor, constant: -16),
+            activityStack.bottomAnchor.constraint(equalTo: activityBadge.bottomAnchor, constant: -10),
 
             spinnerView.widthAnchor.constraint(equalToConstant: 16),
             spinnerView.heightAnchor.constraint(equalToConstant: 16),
 
-            contentStack.topAnchor.constraint(equalTo: topAnchor, constant: 4),
-            contentStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            contentStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -56),
-            contentStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
+            headerStack.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            headerStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            headerStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -56),
+
+            activityBadge.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 8),
+            activityBadge.leadingAnchor.constraint(equalTo: leadingAnchor),
+            activityBadge.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -56),
+            activityBadge.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
             preferredWidth
         ])
     }
@@ -182,6 +108,11 @@ class TranscriptStatusView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        if window == nil {
+            spinnerView.stopAnimation(nil)
+        } else {
+            spinnerView.startAnimation(nil)
+        }
     }
 
     private func populateAvatar(experts: [ResponderExpert]) {
@@ -205,16 +136,13 @@ class TranscriptStatusView: NSView {
                 avatarShell.layer?.masksToBounds = true
                 avatarShell.layer?.borderWidth = 2
                 avatarShell.layer?.borderColor = theme.inputBg.cgColor
-                avatarShell.layer?.shadowColor = NSColor.black.withAlphaComponent(0.08).cgColor
-                avatarShell.layer?.shadowOpacity = 1
-                avatarShell.layer?.shadowRadius = 3
-                avatarShell.layer?.shadowOffset = CGSize(width: 0, height: -1)
                 avatarShell.translatesAutoresizingMaskIntoConstraints = false
                 avatarContainer.addSubview(avatarShell)
 
                 let avatarView = NSImageView()
                 avatarView.image = image
-                avatarView.imageScaling = .scaleAxesIndependently
+                avatarView.imageScaling = .scaleProportionallyUpOrDown
+                avatarView.imageAlignment = .alignCenter
                 avatarView.translatesAutoresizingMaskIntoConstraints = false
                 avatarShell.addSubview(avatarView)
 
@@ -235,22 +163,20 @@ class TranscriptStatusView: NSView {
         }
 
         guard let image = resolvedLennyAvatarImage() else { return }
+
         let avatarShell = NSView()
         avatarShell.wantsLayer = true
         avatarShell.layer?.cornerRadius = avatarSize / 2
         avatarShell.layer?.masksToBounds = true
         avatarShell.layer?.borderWidth = 1.5
         avatarShell.layer?.borderColor = theme.inputBg.cgColor
-        avatarShell.layer?.shadowColor = theme.accentColor.withAlphaComponent(0.12).cgColor
-        avatarShell.layer?.shadowOpacity = 1
-        avatarShell.layer?.shadowRadius = 4
-        avatarShell.layer?.shadowOffset = CGSize(width: 0, height: -1)
         avatarShell.translatesAutoresizingMaskIntoConstraints = false
         avatarContainer.addSubview(avatarShell)
 
         let avatarView = NSImageView()
         avatarView.image = image
-        avatarView.imageScaling = .scaleAxesIndependently
+        avatarView.imageScaling = .scaleProportionallyUpOrDown
+        avatarView.imageAlignment = .alignCenter
         avatarView.translatesAutoresizingMaskIntoConstraints = false
         avatarShell.addSubview(avatarView)
 
@@ -276,13 +202,11 @@ class TranscriptStatusView: NSView {
             return names[0]
         case 2:
             return "\(names[0]) and \(names[1])"
+        case 3:
+            return "\(names[0]), \(names[1]), and \(names[2])"
         default:
-            let leadingNames = names.dropLast().joined(separator: ", ")
-            if let last = names.last {
-                return "\(leadingNames), and \(last)"
-            }
-            return names.joined(separator: ", ")
+            let hiddenCount = names.count - 3
+            return "\(names[0]), \(names[1]), and \(names[2]) +\(hiddenCount)"
         }
     }
-
 }

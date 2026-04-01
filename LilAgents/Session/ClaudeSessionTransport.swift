@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 extension ClaudeSession {
@@ -183,12 +184,25 @@ extension ClaudeSession {
 
     func cancelActiveTurn() {
         isCancellingTurn = true
-        currentProcess?.terminate()
+        if let process = currentProcess {
+            let processID = process.processIdentifier
+            if process.isRunning {
+                process.interrupt()
+                process.terminate()
+
+                DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    guard let self, self.isCancellingTurn else { return }
+                    guard process.isRunning else { return }
+                    kill(processID, SIGKILL)
+                }
+            }
+        }
         currentProcess = nil
         currentDataTask?.cancel()
         currentDataTask = nil
         isBusy = false
         pendingExperts.removeAll()
+        assistantExplicitlyRequestedExperts = false
         livePresenceExperts.removeAll()
         liveToolCallsByID.removeAll()
     }

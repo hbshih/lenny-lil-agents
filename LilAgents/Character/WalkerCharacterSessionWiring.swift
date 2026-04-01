@@ -133,10 +133,10 @@ extension WalkerCharacter {
         }
 
         if !merged.isEmpty {
-            claudeSession?.livePresenceExperts = Array(merged.prefix(3))
+            claudeSession?.livePresenceExperts = merged
         }
 
-        return Array(merged.prefix(3))
+        return merged
     }
 
     func startLiveStatusFallback() {

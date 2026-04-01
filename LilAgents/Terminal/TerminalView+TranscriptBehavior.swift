@@ -219,7 +219,7 @@ extension TerminalView {
                 appendUser(msg.text)
             case .assistant:
                 let speaker = msg.speaker ?? TranscriptSpeaker(name: t.titleString, avatarPath: nil, kind: .lenny)
-                let formatted = TerminalMarkdownRenderer.render(msg.text + "\n", theme: t)
+                let formatted = TerminalMarkdownRenderer.render(msg.text, theme: t)
                 appendBubble(text: formatted, isUser: false, speaker: speaker, followUpExpert: msg.followUpExpert)
             case .error:
                 appendError(msg.text)
