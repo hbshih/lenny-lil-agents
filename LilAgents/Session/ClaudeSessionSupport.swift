@@ -32,30 +32,56 @@ extension ClaudeSession {
         var finalStdout = ""
         var finalStderr = ""
         let queue = DispatchQueue(label: "lenny.runProcess", attributes: .concurrent)
+        var stdoutLineBuffer = ""
+        var stderrLineBuffer = ""
 
-        func processLines(_ string: String) {
-            if let onLineReceived {
-                let lines = string.components(separatedBy: .newlines)
-                for line in lines {
-                    let trim = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trim.isEmpty else { continue }
-                    DispatchQueue.main.async {
-                        onLineReceived(trim)
-                    }
-                }
+        func consumeBufferedLines(_ string: String, buffer: inout String, flush: Bool = false) -> [String] {
+            buffer += string
+            let segments = buffer.components(separatedBy: .newlines)
+            let completed: [String]
+
+            if flush {
+                completed = segments
+                buffer = ""
+            } else {
+                completed = Array(segments.dropLast())
+                buffer = segments.last ?? ""
+            }
+
+            return completed.compactMap { line in
+                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : trimmed
             }
         }
 
         let processStdout: (Data) -> Void = { data in
             guard let string = String(data: data, encoding: .utf8), !string.isEmpty else { return }
-            queue.sync(flags: .barrier) { finalStdout += string }
-            processLines(string)
+            let linesToEmit: [String] = queue.sync(flags: .barrier) {
+                finalStdout += string
+                return consumeBufferedLines(string, buffer: &stdoutLineBuffer)
+            }
+            if let onLineReceived {
+                for line in linesToEmit {
+                    DispatchQueue.main.async {
+                        onLineReceived(line)
+                    }
+                }
+            }
         }
 
         let processStderr: (Data) -> Void = { data in
             guard let string = String(data: data, encoding: .utf8), !string.isEmpty else { return }
-            queue.sync(flags: .barrier) { finalStderr += string }
-            processLines(string)
+            let linesToEmit: [String] = queue.sync(flags: .barrier) {
+                finalStderr += string
+                return consumeBufferedLines(string, buffer: &stderrLineBuffer)
+            }
+            if let onLineReceived {
+                for line in linesToEmit {
+                    DispatchQueue.main.async {
+                        onLineReceived(line)
+                    }
+                }
+            }
         }
 
         stdout.fileHandleForReading.readabilityHandler = { handle in processStdout(handle.availableData) }
@@ -76,9 +102,16 @@ extension ClaudeSession {
             processStderr(remainingErr)
 
             queue.sync {
+                let bufferedLines = consumeBufferedLines("", buffer: &stdoutLineBuffer, flush: true)
+                    + consumeBufferedLines("", buffer: &stderrLineBuffer, flush: true)
                 let outText = finalStdout
                 let errText = finalStderr
                 DispatchQueue.main.async {
+                    if let onLineReceived {
+                        for line in bufferedLines {
+                            onLineReceived(line)
+                        }
+                    }
                     completion(process.terminationStatus, outText, errText)
                 }
             }

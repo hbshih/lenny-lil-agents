@@ -30,6 +30,7 @@ extension ClaudeSession {
         let conversationKey = key(for: activeExpert)
         isCancellingTurn = false
         pendingExperts.removeAll()
+        liveToolCallsByID.removeAll()
         assistantExplicitlyRequestedExperts = false
         appendHistory(Message(role: .user, text: historyText(message: message, attachments: attachments)), to: conversationKey)
         isBusy = true
@@ -176,6 +177,7 @@ extension ClaudeSession {
         isRunning = false
         isBusy = false
         livePresenceExperts.removeAll()
+        liveToolCallsByID.removeAll()
         onProcessExit?()
     }
 
@@ -188,6 +190,7 @@ extension ClaudeSession {
         isBusy = false
         pendingExperts.removeAll()
         livePresenceExperts.removeAll()
+        liveToolCallsByID.removeAll()
     }
 
     func searchStarterArchive(message: String, expert: ResponderExpert?) -> (promptContext: String, experts: [ResponderExpert], summary: String, resultSummary: String) {

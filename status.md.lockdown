@@ -1,0 +1,185 @@
+# Status UI Lockdown
+
+This file records the current live-status behavior for the Claude transport integration and the transcript status card.
+
+## Goal
+
+Replace vague live-status placeholders with user-facing progress text derived from Claude transport activity, while keeping expert avatars stable and visible through the full run.
+
+## Files Included In This Lockdown
+
+- `LilAgents/Session/ClaudeSessionSupport.swift`
+- `LilAgents/Session/ClaudeSessionExpertResolution.swift`
+- `LilAgents/Session/ClaudeSessionCLIParsing+Stdout.swift`
+- `LilAgents/Session/ClaudeSession.swift`
+- `LilAgents/Session/ClaudeSessionTransport.swift`
+- `LilAgents/Character/WalkerCharacterSessionWiring.swift`
+- `LilAgents/Character/WalkerCharacterSessionWiring+Formatting.swift`
+- `LilAgents/Terminal/TerminalView+TranscriptAccessoryViews.swift`
+
+## Transport Handling
+
+### Buffered stdout/stderr
+
+`ClaudeSessionSupport.runProcess(...)` now buffers stdout and stderr by line before forwarding updates.
+
+Effect:
+
+- Prevents broken JSON fragments and partial text chunks from leaking into the live status.
+- Emits completed lines only.
+- Flushes any remaining buffered lines when the process exits.
+
+### Tool call tracking
+
+`ClaudeSession.liveToolCallsByID` stores tool calls by `tool_use_id`.
+
+Effect:
+
+- When Claude emits a `tool_result`, we can map it back to the originating tool call.
+- The UI can show a meaningful result status instead of dropping to a generic placeholder.
+
+### Reset behavior
+
+`liveToolCallsByID` is cleared:
+
+- when a new turn starts
+- when the process exits
+- when the session is cancelled/reset
+
+## What We Print In Live Status
+
+These are user-facing statuses produced from Claude transport and formatting logic.
+
+### Planning / startup
+
+- `Connecting to the archive`
+- `Starting the background work`
+- `Getting things ready`
+
+### Research / archive work
+
+- `Searching the archive`
+- `Searching the archive for <topic>`
+- `Reviewing the relevant context`
+- `Reviewing the relevant context on <topic>`
+- `Looking into <topic>`
+- `Looking into the right source`
+
+### Reading / result synthesis
+
+- `Reviewing <expert>'s advice`
+- `Reviewing <title>`
+- `Reviewing <filename>`
+- `Pulling together the key points`
+- `Pulling together the key points on <topic>`
+- `Pulling together the final answer`
+- `Writing the answer`
+
+### Search result summaries
+
+- `No direct matches for <query>, trying a broader search`
+- `Found 1 relevant match for <query>`
+- `Found <N> relevant matches for <query>`
+
+### File / tool fallbacks
+
+- `That route isn't available here, trying another approach`
+- `That file is hard to scan, trying a more targeted read`
+- `Switching to a more targeted search`
+- `Bash access isn't available here, trying another route`
+- `Found a matching section`
+- `Found a matching section for <pattern>`
+- `Loaded <filename>`
+
+### Expert-presence messages
+
+When the text suggests another expert is being invoked, we emit:
+
+- `<Name> is joining the conversation`
+- `<Name1> and <Name2> are joining the conversation`
+
+Cue detection currently looks for signals such as:
+
+- `@name`
+- `join the conversation`
+- `has joined`
+- `is joining`
+- `bring in`
+- `loop in`
+- `call on`
+- `thoughts on this`
+- `based on what I've gathered from`
+
+## What We Explicitly Do Not Print
+
+- Raw Claude transport payloads
+- Partial JSON chunks
+- Generic placeholders like `Claude is calling`
+- Generic placeholders like `Claude is processing`
+- Generic success text like `Done.`
+- Large raw `tool_result` payload previews
+
+## Avatar Behavior
+
+### Persistence
+
+Live expert avatars stay visible until the turn fully completes and the live status is cleared.
+
+### Stable ordering
+
+`mergedLiveExperts(...)` now preserves existing live experts first and appends newly detected experts after them.
+
+Effect:
+
+- Existing avatars do not jump to the front.
+- New avatars are added to the current set instead of reshuffling the row.
+- The visible set is capped to the first 3 unique experts.
+
+### Sources of live experts
+
+Experts can come from:
+
+- explicitly attached experts in tool input
+- names detected from assistant/transport text
+- existing `livePresenceExperts` already active in the current run
+
+## Status Card UI
+
+The transcript status card now uses a header/body layout.
+
+### Header row
+
+- overlapping avatar group on the left
+- expert names on the same row
+- names render as:
+  - `Lil-Lenny`
+  - `<Name>`
+  - `<Name1> and <Name2>`
+  - `<Name1>, <Name2> +<N>`
+
+### Body row
+
+- primary live status text under the header
+- vertically aligned via a stack layout instead of loose manual offsets
+
+### Visual treatment
+
+- rounded card shell
+- lighter border
+- grouped avatars with overlap and subtle shadow
+- stronger body text weight for easier scanning
+
+## Current Limits
+
+- We only show up to 3 avatars.
+- Expert join copy only uses up to 2 names in the sentence.
+- Topic extraction is heuristic and based on trailing `for`, `about`, and `on` phrases.
+- Some tool result summaries are still tool-specific and can be improved later.
+
+## Suggested Future Improvements
+
+- Broaden transport-to-status mapping for more Claude tool types.
+- Add a more explicit distinction between `searching`, `reading`, and `synthesizing`.
+- Improve topic extraction so status text is less heuristic.
+- Consider whether avatar overflow should show a numeric badge instead of `+N` in the title.
+- Add snapshot tests or lightweight formatting tests for status rewrite rules.

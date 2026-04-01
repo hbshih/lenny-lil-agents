@@ -3,9 +3,12 @@ import AppKit
 class TranscriptStatusView: NSView {
     private let theme: PopoverTheme
     private let avatarContainer = NSView()
+    private let contentStack = NSStackView()
+    private let headerStack = NSStackView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let textLabel = NSTextField(labelWithString: "")
     private let shell = NSView()
+    private var avatarWidthConstraint: NSLayoutConstraint?
 
     init(theme: PopoverTheme, text: String, experts: [ResponderExpert] = []) {
         self.theme = theme
@@ -20,36 +23,51 @@ class TranscriptStatusView: NSView {
     private func setupViews() {
         shell.wantsLayer = true
         shell.layer?.backgroundColor = theme.bubbleBg.cgColor
-        shell.layer?.cornerRadius = 14
+        shell.layer?.cornerRadius = 18
         shell.layer?.borderWidth = 1
-        shell.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.28).cgColor
+        shell.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.22).cgColor
         shell.translatesAutoresizingMaskIntoConstraints = false
         addSubview(shell)
         let preferredWidth = shell.widthAnchor.constraint(equalTo: widthAnchor, constant: -56)
         preferredWidth.priority = .defaultHigh
 
-        avatarContainer.wantsLayer = true
-        avatarContainer.layer?.cornerRadius = 14
-        avatarContainer.layer?.masksToBounds = true
-        avatarContainer.layer?.borderWidth = 1
-        avatarContainer.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.30).cgColor
         avatarContainer.translatesAutoresizingMaskIntoConstraints = false
-        shell.addSubview(avatarContainer)
+        avatarContainer.setContentHuggingPriority(.required, for: .horizontal)
+        avatarContainer.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        titleLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        avatarWidthConstraint = avatarContainer.widthAnchor.constraint(equalToConstant: 28)
+        avatarWidthConstraint?.isActive = true
+
+        contentStack.orientation = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = 6
+        contentStack.edgeInsets = NSEdgeInsetsZero
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        shell.addSubview(contentStack)
+
+        headerStack.orientation = .horizontal
+        headerStack.alignment = .centerY
+        headerStack.spacing = 10
+        headerStack.edgeInsets = NSEdgeInsetsZero
+        headerStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.addArrangedSubview(headerStack)
+
+        headerStack.addArrangedSubview(avatarContainer)
+
+        titleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
         titleLabel.textColor = theme.accentColor
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        shell.addSubview(titleLabel)
+        headerStack.addArrangedSubview(titleLabel)
 
-        textLabel.font = NSFont.systemFont(ofSize: 12.5, weight: .medium)
+        textLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         textLabel.textColor = theme.textPrimary
         textLabel.lineBreakMode = .byWordWrapping
         textLabel.maximumNumberOfLines = 2
         textLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         textLabel.translatesAutoresizingMaskIntoConstraints = false
-        shell.addSubview(textLabel)
+        contentStack.addArrangedSubview(textLabel)
 
         NSLayoutConstraint.activate([
             shell.topAnchor.constraint(equalTo: topAnchor),
@@ -59,44 +77,68 @@ class TranscriptStatusView: NSView {
             preferredWidth,
             shell.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            avatarContainer.topAnchor.constraint(equalTo: shell.topAnchor, constant: 10),
-            avatarContainer.leadingAnchor.constraint(equalTo: shell.leadingAnchor, constant: 14),
-            avatarContainer.widthAnchor.constraint(equalToConstant: 28),
             avatarContainer.heightAnchor.constraint(equalToConstant: 28),
 
-            titleLabel.topAnchor.constraint(equalTo: shell.topAnchor, constant: 12),
-            titleLabel.leadingAnchor.constraint(equalTo: avatarContainer.trailingAnchor, constant: 8),
-            titleLabel.trailingAnchor.constraint(equalTo: shell.trailingAnchor, constant: -14),
-
-            textLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            textLabel.leadingAnchor.constraint(equalTo: shell.leadingAnchor, constant: 14),
-            textLabel.trailingAnchor.constraint(equalTo: shell.trailingAnchor, constant: -14),
-            textLabel.bottomAnchor.constraint(equalTo: shell.bottomAnchor, constant: -12)
+            contentStack.topAnchor.constraint(equalTo: shell.topAnchor, constant: 12),
+            contentStack.leadingAnchor.constraint(equalTo: shell.leadingAnchor, constant: 16),
+            contentStack.trailingAnchor.constraint(equalTo: shell.trailingAnchor, constant: -16),
+            contentStack.bottomAnchor.constraint(equalTo: shell.bottomAnchor, constant: -12)
         ])
     }
 
     func update(text: String, experts: [ResponderExpert] = []) {
         textLabel.stringValue = text
-        titleLabel.stringValue = experts.first?.name ?? "Lil-Lenny"
+        titleLabel.stringValue = expertTitle(for: experts)
         populateAvatar(experts: experts)
     }
 
     private func populateAvatar(experts: [ResponderExpert]) {
         avatarContainer.subviews.forEach { $0.removeFromSuperview() }
 
-        if let avatarPath = experts.first?.avatarPath,
-           let image = resolvedAvatarImage(at: avatarPath) {
-            let avatarView = NSImageView()
-            avatarView.image = image
-            avatarView.imageScaling = .scaleAxesIndependently
-            avatarView.translatesAutoresizingMaskIntoConstraints = false
-            avatarContainer.addSubview(avatarView)
-            NSLayoutConstraint.activate([
-                avatarView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
-                avatarView.leadingAnchor.constraint(equalTo: avatarContainer.leadingAnchor),
-                avatarView.trailingAnchor.constraint(equalTo: avatarContainer.trailingAnchor),
-                avatarView.bottomAnchor.constraint(equalTo: avatarContainer.bottomAnchor)
-            ])
+        let visibleExperts = Array(experts.prefix(3))
+        let avatarSize: CGFloat = 28
+        let overlap: CGFloat = 10
+        let width = visibleExperts.isEmpty
+            ? avatarSize
+            : avatarSize + CGFloat(max(0, visibleExperts.count - 1)) * (avatarSize - overlap)
+        avatarWidthConstraint?.constant = width
+
+        if !visibleExperts.isEmpty {
+            for (index, expert) in visibleExperts.enumerated() {
+                guard let image = resolvedAvatarImage(at: expert.avatarPath) else { continue }
+
+                let avatarShell = NSView()
+                avatarShell.wantsLayer = true
+                avatarShell.layer?.cornerRadius = avatarSize / 2
+                avatarShell.layer?.masksToBounds = true
+                avatarShell.layer?.borderWidth = 2
+                avatarShell.layer?.borderColor = theme.bubbleBg.cgColor
+                avatarShell.layer?.shadowColor = NSColor.black.withAlphaComponent(0.08).cgColor
+                avatarShell.layer?.shadowOpacity = 1
+                avatarShell.layer?.shadowRadius = 3
+                avatarShell.layer?.shadowOffset = CGSize(width: 0, height: -1)
+                avatarShell.translatesAutoresizingMaskIntoConstraints = false
+                avatarContainer.addSubview(avatarShell)
+
+                let avatarView = NSImageView()
+                avatarView.image = image
+                avatarView.imageScaling = .scaleAxesIndependently
+                avatarView.translatesAutoresizingMaskIntoConstraints = false
+                avatarShell.addSubview(avatarView)
+
+                let xOffset = CGFloat(index) * (avatarSize - overlap)
+                NSLayoutConstraint.activate([
+                    avatarShell.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
+                    avatarShell.leadingAnchor.constraint(equalTo: avatarContainer.leadingAnchor, constant: xOffset),
+                    avatarShell.widthAnchor.constraint(equalToConstant: avatarSize),
+                    avatarShell.heightAnchor.constraint(equalToConstant: avatarSize),
+
+                    avatarView.topAnchor.constraint(equalTo: avatarShell.topAnchor),
+                    avatarView.leadingAnchor.constraint(equalTo: avatarShell.leadingAnchor),
+                    avatarView.trailingAnchor.constraint(equalTo: avatarShell.trailingAnchor),
+                    avatarView.bottomAnchor.constraint(equalTo: avatarShell.bottomAnchor)
+                ])
+            }
             return
         }
 
@@ -114,5 +156,20 @@ class TranscriptStatusView: NSView {
             icon.widthAnchor.constraint(equalToConstant: 15),
             icon.heightAnchor.constraint(equalToConstant: 15)
         ])
+    }
+
+    private func expertTitle(for experts: [ResponderExpert]) -> String {
+        let names = experts.map(\.name)
+        switch names.count {
+        case 0:
+            return "Lil-Lenny"
+        case 1:
+            return names[0]
+        case 2:
+            return "\(names[0]) and \(names[1])"
+        default:
+            let extraCount = names.count - 2
+            return "\(names[0]), \(names[1]) +\(extraCount)"
+        }
     }
 }

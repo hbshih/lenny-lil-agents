@@ -19,40 +19,42 @@ extension WalkerCharacter {
     func formatLiveStatus(toolName: String, summary: String) -> String {
         let lowered = toolName.lowercased()
         let detail = statusDetail(from: summary)
+        if let joinStatus = liveExpertJoinStatus(from: summary) {
+            return joinStatus
+        }
 
         if lowered.contains("planning") || lowered.contains("calling model") {
-            if let detail, detail.lowercased() == "composing the final answer" {
-                return "Composing the final answer"
+            if let planningStatus = userFacingPlanningStatus(from: detail ?? summary) {
+                return planningStatus
             }
-            return detail ?? "Reviewing notes"
+            return detail ?? "Getting things ready"
         }
         if lowered.contains("calling mcp tool") {
-            if let detail {
-                if detail.lowercased().contains("official lenny mcp") {
-                    return "Using Official Lenny MCP"
-                }
-                return "Using \(detail)"
+            if let detail, let rewritten = userFacingResearchStatus(from: detail) {
+                return rewritten
             }
-            return "Using a research tool"
+            return "Checking the archive"
         }
         if lowered.contains("search") || lowered.contains("reading") || lowered.contains("browse") {
-            if let detail {
-                let verb = lowered.contains("reading") ? "Reading" : "Searching"
-                return "\(verb): \(detail)"
+            if let detail, let rewritten = userFacingResearchStatus(from: detail) {
+                return rewritten
             }
             return lowered.contains("reading") ? "Reading source material" : "Searching the archive"
         }
         if lowered.contains("writing") || lowered.contains("generating") {
-            if let detail {
-                return "Writing: \(detail)"
+            if let detail, let rewritten = userFacingWritingStatus(from: detail) {
+                return rewritten
             }
-            return "Drafting the answer"
+            return "Writing the answer"
         }
-        if lowered.contains("running") || lowered.contains("progress") || lowered.contains("thinking") {
-            return detail ?? "Working through the request"
+        if let rewritten = userFacingNarration(from: detail ?? summary) {
+            return rewritten
         }
         if lowered.contains("tool") {
             return detail.map { "Using \($0)" } ?? "Using a research tool"
+        }
+        if lowered.contains("running") || lowered.contains("progress") || lowered.contains("thinking") {
+            return detail ?? "Working through the request"
         }
         return detail ?? "Working through the request"
     }
@@ -95,7 +97,7 @@ extension WalkerCharacter {
             return "Something went wrong."
         }
 
-        return "Done."
+        return ""
     }
 
     private func readableStatusValue(_ value: Any?) -> String? {
@@ -178,6 +180,162 @@ extension WalkerCharacter {
         }
 
         return String(trimmed.prefix(64))
+    }
+
+    private func liveExpertJoinStatus(from summary: String) -> String? {
+        guard let session = claudeSession,
+              !summary.isEmpty else {
+            return nil
+        }
+
+        let names = Array(session.expertNames(fromFreeformText: summary).prefix(2))
+        guard let firstExpert = names.first else { return nil }
+
+        let lowered = summary.lowercased()
+        let cues = [
+            "@",
+            "join the conversation",
+            "joining the conversation",
+            "has joined",
+            "is joining",
+            "bring in",
+            "loop in",
+            "call on",
+            "thoughts on this",
+            "i've got",
+            "i have enough from the archive",
+            "based on what i've gathered from",
+            "who've shared"
+        ]
+
+        guard cues.contains(where: { lowered.contains($0) }) else { return nil }
+        if names.count >= 2 {
+            return "\(names[0]) and \(names[1]) are joining the conversation"
+        }
+        return "\(firstExpert) is joining the conversation"
+    }
+
+    private func userFacingPlanningStatus(from summary: String) -> String? {
+        let lowered = summary.lowercased()
+        if lowered.contains("composing the final answer") {
+            return "Writing the answer"
+        }
+        if lowered.contains("lenny mcp") || lowered.contains("official lenny mcp") {
+            return "Connecting to the archive"
+        }
+        if lowered.contains("claude code") || lowered.contains("openai responses") || lowered.contains("codex") {
+            return "Starting the background work"
+        }
+        return userFacingNarration(from: summary)
+    }
+
+    private func userFacingResearchStatus(from detail: String) -> String? {
+        let trimmed = detail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowered = trimmed.lowercased()
+
+        if lowered.hasPrefix("searching ") || lowered.hasPrefix("reading ") || lowered.hasPrefix("checking ") {
+            return trimmed
+        }
+        if lowered.contains("official lenny mcp") {
+            return "Connecting to the archive"
+        }
+        return userFacingNarration(from: trimmed)
+    }
+
+    private func userFacingWritingStatus(from detail: String) -> String? {
+        let lowered = detail.lowercased()
+        if lowered.contains("composing the final answer") || lowered.contains("construct the json response") {
+            return "Writing the answer"
+        }
+        if let rewritten = userFacingNarration(from: detail) {
+            return rewritten
+        }
+        return "Writing the answer"
+    }
+
+    private func userFacingNarration(from summary: String) -> String? {
+        let trimmed = summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let lowered = trimmed.lowercased()
+
+        if lowered.contains("construct the json response")
+            || lowered.contains("compose the final answer")
+            || lowered.contains("draft the answer") {
+            return "Writing the answer"
+        }
+
+        if lowered.contains("i have enough from the archive now")
+            || lowered.contains("based on what i've gathered from") {
+            return "Pulling together the final answer"
+        }
+
+        if lowered.contains("permission to use bash has been denied") {
+            return "That route isn't available here, trying another approach"
+        }
+
+        if lowered.contains("file is just one long line") {
+            return "That file is hard to scan, trying a more targeted read"
+        }
+
+        if lowered.contains("read specific parts")
+            || lowered.contains("search for specific content")
+            || lowered.contains("capped at returning only") {
+            return "Switching to a more targeted search"
+        }
+
+        if lowered.contains("have rich content")
+            || lowered.contains("have enough context")
+            || lowered.contains("key framework") {
+            if let topic = trailingTopic(in: trimmed) {
+                return "Pulling together the key points on \(topic)"
+            }
+            return "Pulling together the key points"
+        }
+
+        if lowered.contains("search") {
+            if let topic = trailingTopic(in: trimmed) {
+                return "Searching the archive for \(topic)"
+            }
+            return "Searching the archive"
+        }
+
+        if lowered.contains("read") || lowered.contains("review") {
+            if let topic = trailingTopic(in: trimmed) {
+                return "Reviewing the relevant context on \(topic)"
+            }
+            return "Reviewing the relevant context"
+        }
+
+        if lowered.contains("check") || lowered.contains("look for") || lowered.contains("find") {
+            if let topic = trailingTopic(in: trimmed) {
+                return "Looking into \(topic)"
+            }
+            return "Looking into the right source"
+        }
+
+        return nil
+    }
+
+    private func trailingTopic(in text: String) -> String? {
+        let patterns = [
+            #"\bfor\s+(.+?)[\.\!\?]?$"#,
+            #"\babout\s+(.+?)[\.\!\?]?$"#,
+            #"\bon\s+(.+?)[\.\!\?]?$"#
+        ]
+
+        for pattern in patterns {
+            if let match = match(in: text, pattern: pattern) {
+                let cleaned = match
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .replacingOccurrences(of: #"^(the|this)\s+"#, with: "", options: .regularExpression)
+                if !cleaned.isEmpty {
+                    return String(cleaned.prefix(56))
+                }
+            }
+        }
+
+        return nil
     }
 
     private func looksLikeTranscriptExcerpt(_ string: String) -> Bool {

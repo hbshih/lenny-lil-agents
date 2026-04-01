@@ -26,6 +26,7 @@ final class ClaudeSession {
     var selectedBackendPreferenceKey: String?
     var pendingExperts: [ResponderExpert] = []
     var livePresenceExperts: [ResponderExpert] = []
+    var liveToolCallsByID: [String: (name: String, arguments: [String: Any])] = [:]
     var assistantExplicitlyRequestedExperts = false
     var currentProcess: Process?
     var currentDataTask: URLSessionDataTask?

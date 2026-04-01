@@ -77,7 +77,7 @@ extension ClaudeSession {
         switch toolName {
         case "search_content":
             let query = (arguments["query"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "the archive"
-            return ("Calling MCP Tool", "Searching LennyData for \(query)")
+            return ("Calling MCP Tool", "Searching the archive for \(query)")
         case "read_excerpt":
             let filename = readableSourceName(from: arguments["filename"] as? String)
             let query = (arguments["query"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)

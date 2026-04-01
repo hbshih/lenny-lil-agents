@@ -124,14 +124,11 @@ extension WalkerCharacter {
     }
 
     func mergedLiveExperts(_ explicitExperts: [ResponderExpert], from text: String) -> [ResponderExpert] {
-        var merged: [ResponderExpert] = claudeSession?.livePresenceExperts ?? []
-
-        for expert in explicitExperts where !merged.contains(where: { $0.name == expert.name }) {
-            merged.append(expert)
-        }
-
         let fromText = detectedLiveExperts(from: text)
-        for expert in fromText where !merged.contains(where: { $0.name == expert.name }) {
+        let existing = claudeSession?.livePresenceExperts ?? []
+
+        var merged: [ResponderExpert] = []
+        for expert in existing + explicitExperts + fromText where !merged.contains(where: { $0.name == expert.name }) {
             merged.append(expert)
         }
 
