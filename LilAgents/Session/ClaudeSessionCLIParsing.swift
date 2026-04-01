@@ -15,8 +15,27 @@ extension ClaudeSession {
 
     func prepareAssistantResponse(_ outputText: String) -> (messages: [Message], displayText: String) {
         if let payload = parseStructuredAssistantResponse(from: outputText) {
-            assistantExplicitlyRequestedExperts = payload.suggestExpertPrompt
-            pendingExperts = payload.suggestedExperts
+            let segments: [AssistantSegment]
+            if let focusedExpert {
+                let matchingSegments = payload.segments.filter {
+                    $0.speaker.kind == .expert && normalize($0.speaker.name) == normalize(focusedExpert.name)
+                }
+                if !matchingSegments.isEmpty {
+                    segments = matchingSegments
+                } else if let fallbackMarkdown = payload.segments
+                    .map(\.markdown)
+                    .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+                    .last(where: { !$0.isEmpty }) {
+                    segments = [AssistantSegment(speaker: speaker(for: focusedExpert), markdown: fallbackMarkdown, followUpExpert: focusedExpert)]
+                } else {
+                    segments = []
+                }
+            } else {
+                segments = payload.segments
+            }
+
+            assistantExplicitlyRequestedExperts = focusedExpert == nil && payload.suggestExpertPrompt
+            pendingExperts = focusedExpert == nil ? payload.suggestedExperts : []
 
             if payload.suggestExpertPrompt {
                 let names = pendingExperts.map(\.name).joined(separator: ", ")
@@ -25,7 +44,8 @@ extension ClaudeSession {
                 SessionDebugLogger.log("experts", "assistant explicitly declined expert suggestions")
             }
 
-            return (assistantMessages(from: payload.segments), payload.segments.map(\.markdown).joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines))
+            let displayText = segments.map(\.markdown).joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            return (assistantMessages(from: segments), displayText)
         }
 
         let structuredNames = structuredExpertSuggestionNames(from: outputText)

@@ -271,6 +271,10 @@ extension ClaudeSession {
 
     private func readablePath(_ rawPath: String?) -> String {
         guard let rawPath, !rawPath.isEmpty else { return "the file" }
+        let trimmed = rawPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.range(of: #"^toolu_[A-Za-z0-9]+$"#, options: .regularExpression) != nil {
+            return "the file"
+        }
         return URL(fileURLWithPath: rawPath).lastPathComponent
     }
 

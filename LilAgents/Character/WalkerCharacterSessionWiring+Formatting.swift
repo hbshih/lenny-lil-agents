@@ -22,6 +22,12 @@ extension WalkerCharacter {
         if let joinStatus = liveExpertJoinStatus(from: summary) {
             return joinStatus
         }
+        if lowered == "tool result" {
+            if let detail, let rewritten = userFacingResearchStatus(from: detail) {
+                return rewritten
+            }
+            return "Reviewing the relevant context"
+        }
 
         if lowered.contains("planning") || lowered.contains("calling model") {
             if let planningStatus = userFacingPlanningStatus(from: detail ?? summary) {
@@ -131,6 +137,7 @@ extension WalkerCharacter {
         guard !trimmed.contains("{"), !trimmed.contains("}"), !trimmed.contains("["), !trimmed.contains("]") else { return nil }
         guard !trimmed.hasPrefix("```") else { return nil }
         guard !trimmed.contains("\\\""), !trimmed.contains("\\n") else { return nil }
+        guard trimmed.range(of: #"toolu_[A-Za-z0-9]+"#, options: .regularExpression) == nil else { return nil }
         guard !looksLikeTranscriptExcerpt(trimmed) else { return nil }
         return trimmed.count > 120 ? String(trimmed.prefix(120)) : trimmed
     }
@@ -163,6 +170,9 @@ extension WalkerCharacter {
         }
         if summary.contains("official Lenny MCP") {
             return "Official Lenny MCP"
+        }
+        if summary.range(of: #"toolu_[A-Za-z0-9]+"#, options: .regularExpression) != nil {
+            return nil
         }
         if summary.localizedCaseInsensitiveContains("maximum allowed tokens") {
             return "a large source file"

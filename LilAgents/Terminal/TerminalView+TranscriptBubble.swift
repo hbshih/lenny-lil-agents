@@ -11,14 +11,24 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
     private let copyButton = HoverButton(title: "", target: nil, action: nil)
     private let followUpButton = HoverButton(title: "", target: nil, action: nil)
     private let isUser: Bool
+    private let showsSpeakerHeader: Bool
     private let theme: PopoverTheme
     var textWidthConstraint: NSLayoutConstraint?
     var textHeightConstraint: NSLayoutConstraint?
     var onCopy: (() -> Void)?
     var onFollowUp: (() -> Void)?
 
-    init(text: NSAttributedString, isUser: Bool, speaker: TranscriptSpeaker, theme: PopoverTheme, onCopy: (() -> Void)? = nil, onFollowUp: (() -> Void)? = nil) {
+    init(
+        text: NSAttributedString,
+        isUser: Bool,
+        speaker: TranscriptSpeaker,
+        theme: PopoverTheme,
+        showsSpeakerHeader: Bool = true,
+        onCopy: (() -> Void)? = nil,
+        onFollowUp: (() -> Void)? = nil
+    ) {
         self.isUser = isUser
+        self.showsSpeakerHeader = showsSpeakerHeader
         self.theme = theme
         self.onCopy = onCopy
         self.onFollowUp = onFollowUp
@@ -35,7 +45,7 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
 
         contentColumn.orientation = .vertical
         contentColumn.alignment = isUser ? .trailing : .leading
-        contentColumn.spacing = 7
+        contentColumn.spacing = showsSpeakerHeader ? 7 : 0
         contentColumn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(contentColumn)
 
@@ -169,10 +179,22 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
     private func populate(text: NSAttributedString, speaker: TranscriptSpeaker) {
         headerLabel.stringValue = speaker.name
         populateAvatar(for: speaker)
+        configureHeaderVisibility()
         configureTextContainer()
         textView.textStorage?.setAttributedString(text)
         configureActions(for: speaker)
         recalculateSize()
+    }
+
+    private func configureHeaderVisibility() {
+        if showsSpeakerHeader {
+            if headerRow.superview == nil {
+                contentColumn.insertArrangedSubview(headerRow, at: 0)
+            }
+        } else if headerRow.superview != nil {
+            contentColumn.removeArrangedSubview(headerRow)
+            headerRow.removeFromSuperview()
+        }
     }
 
     private func populateAvatar(for speaker: TranscriptSpeaker) {
@@ -227,7 +249,7 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
             $0.removeFromSuperview()
         }
 
-        if speaker.kind == .expert {
+        if speaker.kind == .expert, onCopy != nil {
             configureCopyAction(copyButton, action: #selector(copyTapped))
             actionRow.addArrangedSubview(copyButton)
         }

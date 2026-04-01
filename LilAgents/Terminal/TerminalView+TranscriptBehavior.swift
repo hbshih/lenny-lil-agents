@@ -1,7 +1,12 @@
 import AppKit
 
 extension TerminalView {
-    private func scrollTranscriptViewIntoView(_ view: NSView, topPadding: CGFloat = 0, bottomPadding: CGFloat = 0) {
+    private func scrollTranscriptViewIntoView(
+        _ view: NSView,
+        topPadding: CGFloat = 0,
+        bottomPadding: CGFloat = 0,
+        preferBottomEdge: Bool = false
+    ) {
         resizeTranscriptToFitContent()
         guard let docView = scrollView.documentView else {
             return
@@ -14,7 +19,9 @@ extension TerminalView {
         let targetBottomY = min(docView.bounds.height, view.frame.maxY + bottomPadding)
 
         let nextOffsetY: CGFloat
-        if targetTopY < currentOffsetY {
+        if preferBottomEdge, (targetTopY < currentOffsetY || targetBottomY > currentOffsetY + visibleHeight) {
+            nextOffsetY = min(maxOffsetY, max(0, targetBottomY - visibleHeight))
+        } else if targetTopY < currentOffsetY {
             nextOffsetY = targetTopY
         } else if targetBottomY > currentOffsetY + visibleHeight {
             nextOffsetY = min(maxOffsetY, max(0, targetBottomY - visibleHeight))
@@ -26,16 +33,32 @@ extension TerminalView {
         scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 
-    private func scrollLatestTranscriptItemIntoView(topPadding: CGFloat = 0, bottomPadding: CGFloat = 0) {
+    private func scrollLatestTranscriptItemIntoView(
+        topPadding: CGFloat = 0,
+        bottomPadding: CGFloat = 0,
+        preferBottomEdge: Bool = false
+    ) {
         guard let lastView = transcriptStack.arrangedSubviews.last else {
             scrollToBottom()
             return
         }
 
-        scrollTranscriptViewIntoView(lastView, topPadding: topPadding, bottomPadding: bottomPadding)
+        scrollTranscriptViewIntoView(
+            lastView,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding,
+            preferBottomEdge: preferBottomEdge
+        )
     }
 
-    private func appendBubble(text: NSAttributedString, isUser: Bool, speaker: TranscriptSpeaker, followUpExpert: ResponderExpert? = nil) {
+    private func appendBubble(
+        text: NSAttributedString,
+        isUser: Bool,
+        speaker: TranscriptSpeaker,
+        followUpExpert: ResponderExpert? = nil,
+        showsCopyAction: Bool = true,
+        showsSpeakerHeader: Bool = true
+    ) {
         let followUpHandler: (() -> Void)? = {
             guard let followUpExpert, !self.isExpertMode else { return nil }
             return { [weak self] in
@@ -49,14 +72,15 @@ extension TerminalView {
             isUser: isUser,
             speaker: speaker,
             theme: theme,
-            onCopy: {
+            showsSpeakerHeader: showsSpeakerHeader,
+            onCopy: showsCopyAction ? {
                 WalkerCharacter.playSelectionSound()
-            },
+            } : nil,
             onFollowUp: followUpHandler
         )
         transcriptStack.addArrangedSubview(bubble)
         bubble.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
-        scrollTranscriptViewIntoView(bubble, topPadding: 12, bottomPadding: 28)
+        scrollTranscriptViewIntoView(bubble, topPadding: 12, bottomPadding: 28, preferBottomEdge: true)
     }
 
     func expertSuggestionCardHeight(for expertCount: Int) -> CGFloat {
@@ -112,7 +136,13 @@ extension TerminalView {
             .foregroundColor: theme.textPrimary,
         ])
         transcriptStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        appendBubble(text: attrText, isUser: false, speaker: TranscriptSpeaker(name: expert.name, avatarPath: expert.avatarPath, kind: .expert))
+        appendBubble(
+            text: attrText,
+            isUser: false,
+            speaker: TranscriptSpeaker(name: expert.name, avatarPath: expert.avatarPath, kind: .expert),
+            showsCopyAction: false,
+            showsSpeakerHeader: false
+        )
         currentAssistantText = ""
         scrollToTop()
     }
@@ -184,13 +214,13 @@ extension TerminalView {
     func renderTranscriptLiveStatus(_ text: String, experts: [ResponderExpert] = []) {
         if let statusView = transcriptLiveStatusView as? TranscriptStatusView {
             statusView.update(text: text, experts: experts)
-            scrollTranscriptViewIntoView(statusView, topPadding: 12, bottomPadding: 20)
+            scrollTranscriptViewIntoView(statusView, topPadding: 12, bottomPadding: 20, preferBottomEdge: true)
         } else {
             let statusView = TranscriptStatusView(theme: theme, text: text, experts: experts)
             transcriptStack.addArrangedSubview(statusView)
             statusView.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
             transcriptLiveStatusView = statusView
-            scrollTranscriptViewIntoView(statusView, topPadding: 12, bottomPadding: 20)
+            scrollTranscriptViewIntoView(statusView, topPadding: 12, bottomPadding: 20, preferBottomEdge: true)
         }
     }
 
@@ -260,7 +290,7 @@ extension TerminalView {
         if lastRole == .assistant {
             endStreaming()
         }
-        scrollLatestTranscriptItemIntoView()
+        scrollLatestTranscriptItemIntoView(preferBottomEdge: true)
     }
 
     func scrollToBottom() {
@@ -274,7 +304,7 @@ extension TerminalView {
     }
 
     func scrollLatestBubbleIntoView() {
-        scrollLatestTranscriptItemIntoView()
+        scrollLatestTranscriptItemIntoView(preferBottomEdge: true)
     }
 
     func scrollToTop() {

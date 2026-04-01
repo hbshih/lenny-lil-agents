@@ -190,7 +190,7 @@ extension WalkerCharacter {
                     currentActivityStatus,
                     isBusy: true,
                     isError: false,
-                    experts: session.livePresenceExperts
+                    experts: [expert]
                 )
             } else {
                 terminalView.clearTranscriptLiveStatus()

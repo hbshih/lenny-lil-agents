@@ -28,6 +28,9 @@ extension TerminalView {
         isStreaming = true
         currentAssistantText = ""
         setLiveStatus("Getting things moving…", isBusy: true, isError: false)
+        DispatchQueue.main.async { [weak self] in
+            self?.scrollToBottom()
+        }
         onSendMessage?(text, attachments)
     }
 
