@@ -54,6 +54,7 @@ class TerminalView: NSView {
     var isPinnedOpen = false
     var isShowingDropTarget = false
     var isExpertMode = false
+    var isReplayingTranscript = false
 
     override init(frame: NSRect) {
         super.init(frame: frame)

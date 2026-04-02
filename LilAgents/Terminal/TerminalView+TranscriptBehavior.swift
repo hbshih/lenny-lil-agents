@@ -68,6 +68,7 @@ extension TerminalView {
         isUser: Bool,
         speaker: TranscriptSpeaker,
         followUpExpert: ResponderExpert? = nil,
+        textInsets: NSSize = NSSize(width: 14, height: 12),
         showsCopyAction: Bool = true,
         showsSpeakerHeader: Bool = true
     ) {
@@ -85,6 +86,7 @@ extension TerminalView {
             speaker: speaker,
             theme: theme,
             showsSpeakerHeader: showsSpeakerHeader,
+            textInsets: textInsets,
             onCopy: showsCopyAction ? {
                 WalkerCharacter.playSelectionSound()
             } : nil,
@@ -92,7 +94,9 @@ extension TerminalView {
         )
         transcriptStack.addArrangedSubview(bubble)
         bubble.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
-        scrollTranscriptViewIntoView(bubble, topPadding: 12, bottomPadding: 28, preferBottomEdge: true)
+        if !isReplayingTranscript {
+            scrollTranscriptViewIntoView(bubble, topPadding: 12, bottomPadding: 28, preferBottomEdge: true)
+        }
     }
 
     func expertSuggestionCardHeight(for expertCount: Int) -> CGFloat {
@@ -270,7 +274,11 @@ extension TerminalView {
 
     func replayConversation(_ messages: [ClaudeSession.Message], expertSuggestions: [ExpertSuggestionEntry]) {
         let t = theme
+        let previousOffsetY = scrollView.contentView.bounds.origin.y
+        let shouldStickToBottom = isTranscriptNearBottom(threshold: 72)
+
         isShowingInitialWelcomeState = false
+        isReplayingTranscript = true
         transcriptStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         transcriptSuggestionView = nil
         transcriptLiveStatusView = nil
@@ -307,7 +315,17 @@ extension TerminalView {
         if lastRole == .assistant {
             endStreaming()
         }
-        scrollLatestTranscriptItemIntoView(preferBottomEdge: true)
+        isReplayingTranscript = false
+        resizeTranscriptToFitContent()
+
+        if shouldStickToBottom {
+            scrollToBottom()
+        } else if let docView = scrollView.documentView {
+            let maxOffsetY = max(0, docView.bounds.height - scrollView.contentSize.height)
+            let restoredOffsetY = min(previousOffsetY, maxOffsetY)
+            docView.scroll(NSPoint(x: 0, y: restoredOffsetY))
+            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
     }
 
     func scrollToBottom() {
