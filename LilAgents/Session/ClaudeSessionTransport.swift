@@ -3,7 +3,12 @@ import Foundation
 
 extension ClaudeSession {
     func preferredWorkingDirectoryURL() -> URL {
-        FileManager.default.homeDirectoryForCurrentUser
+        if AppSettings.effectiveArchiveAccessMode == .starterPack {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("LilLennyStarterPackCLI", isDirectory: true)
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            return url
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
     }
 
     func start() {
@@ -21,7 +26,7 @@ extension ClaudeSession {
 
             self.selectedBackend = backend
             self.isRunning = true
-            SessionDebugLogger.log("session", "session ready. selectedBackend=\(backendStatusMessage(for: backend))")
+            SessionDebugLogger.log("session", "session ready. selectedBackend=\(self.backendStatusMessage(for: backend, environment: environment))")
             self.onSessionReady?()
         }
     }
@@ -51,11 +56,11 @@ extension ClaudeSession {
             }
 
             self.selectedBackend = backend
-            let status = self.backendStatusMessage(for: backend)
+            let archiveMode = self.effectiveArchiveAccessMode(environment: environment)
+            let status = self.backendStatusMessage(for: backend, environment: environment)
             self.onToolResult?(status, false)
             self.appendHistory(Message(role: .toolResult, text: status), to: conversationKey)
 
-            let archiveMode = AppSettings.effectiveArchiveAccessMode
             let sourceSummary = archiveMode == .starterPack
                 ? "Source: Starter pack"
                 : "Source: Official Lenny MCP"
@@ -87,7 +92,8 @@ extension ClaudeSession {
                         expert: activeExpert,
                         conversationKey: conversationKey,
                         archiveContext: localResult.promptContext,
-                        officialMCPToken: nil
+                        officialMCPToken: nil,
+                        useOfficialMCP: false
                     )
 
                 case let .codexCLI(path):
@@ -99,7 +105,7 @@ extension ClaudeSession {
                         expert: activeExpert,
                         conversationKey: conversationKey,
                         archiveContext: localResult.promptContext,
-                        useBundledMCP: false
+                        useOfficialMCP: false
                     )
 
                 case .openAIResponsesAPI:
@@ -123,6 +129,7 @@ extension ClaudeSession {
 
             switch backend {
             case let .claudeCodeCLI(path):
+                let token = self.officialMCPToken(from: environment)
                 self.callClaudeCodeCLI(
                     executablePath: path,
                     message: message,
@@ -131,7 +138,8 @@ extension ClaudeSession {
                     expert: activeExpert,
                     conversationKey: conversationKey,
                     archiveContext: nil,
-                    officialMCPToken: self.officialMCPToken(from: environment)
+                    officialMCPToken: token,
+                    useOfficialMCP: self.backendSupportsOfficialMCP(backend, environment: environment)
                 )
 
             case let .codexCLI(path):
@@ -143,7 +151,7 @@ extension ClaudeSession {
                     expert: activeExpert,
                     conversationKey: conversationKey,
                     archiveContext: nil,
-                    useBundledMCP: self.officialMCPToken(from: environment) != nil
+                    useOfficialMCP: self.backendSupportsOfficialMCP(backend, environment: environment)
                 )
 
             case .openAIResponsesAPI:

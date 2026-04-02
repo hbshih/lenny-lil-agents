@@ -172,18 +172,26 @@ extension WalkerCharacter {
         guard let session = claudeSession, let terminalView else { return }
         let activeHistory = session.history(for: focusedExpert)
         let conversationKey = session.key(for: focusedExpert)
-        let transcriptAlreadyRendered =
-            terminalView.renderedConversationKey == conversationKey &&
-            !terminalView.transcriptStack.arrangedSubviews.isEmpty
 
         if let expert = focusedExpert {
             if activeHistory.isEmpty {
-                if !transcriptAlreadyRendered {
-                    terminalView.showExpertGreeting(for: expert)
+                terminalView.renderedConversationKey = conversationKey
+                terminalView.showExpertGreeting(for: expert)
+                if session.isBusy, !currentActivityStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    terminalView.setLiveStatus(
+                        currentActivityStatus,
+                        isBusy: true,
+                        isError: false,
+                        experts: [expert]
+                    )
+                } else {
+                    terminalView.clearTranscriptLiveStatus()
                 }
-            } else {
-                terminalView.replayConversation(activeHistory, expertSuggestions: session.expertSuggestionEntries(for: expert))
+                terminalView.hideExpertSuggestions(clearState: false)
+                return
             }
+
+            terminalView.replayConversation(activeHistory, expertSuggestions: session.expertSuggestionEntries(for: expert))
             terminalView.renderedConversationKey = conversationKey
             if session.isBusy, !currentActivityStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 terminalView.setLiveStatus(
@@ -200,12 +208,23 @@ extension WalkerCharacter {
         }
 
         if activeHistory.isEmpty {
-            if !transcriptAlreadyRendered {
-                terminalView.showWelcomeGreeting()
+            terminalView.renderedConversationKey = conversationKey
+            terminalView.showWelcomeGreeting()
+            if session.isBusy, !currentActivityStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                terminalView.setLiveStatus(
+                    currentActivityStatus,
+                    isBusy: true,
+                    isError: false,
+                    experts: session.livePresenceExperts
+                )
+            } else {
+                terminalView.clearTranscriptLiveStatus()
             }
-        } else {
-            terminalView.replayConversation(activeHistory, expertSuggestions: session.expertSuggestionEntries(for: nil))
+            terminalView.hideExpertSuggestions()
+            return
         }
+
+        terminalView.replayConversation(activeHistory, expertSuggestions: session.expertSuggestionEntries(for: nil))
         terminalView.renderedConversationKey = conversationKey
 
         if session.isBusy, !currentActivityStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

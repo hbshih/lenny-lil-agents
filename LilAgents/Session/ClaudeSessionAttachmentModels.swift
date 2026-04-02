@@ -39,6 +39,10 @@ struct SessionAttachment: Equatable {
         ]
     }
 
+    static var pickerContentTypes: [UTType] {
+        supportedContentTypes.filter { !$0.conforms(to: .image) }
+    }
+
     static func from(url: URL) -> SessionAttachment? {
         let lowercasedExtension = url.pathExtension.lowercased()
 

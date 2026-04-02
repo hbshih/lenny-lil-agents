@@ -229,6 +229,13 @@ extension TerminalView {
         composerPanel.addSubview(composerStatusLabel)
 
         registerForDraggedTypes([.fileURL, .URL, .string, .tiff, .png])
+        settingsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshWelcomePreviewIfNeeded()
+        }
         refreshComposerContentLayout()
         relayoutPanels()
     }

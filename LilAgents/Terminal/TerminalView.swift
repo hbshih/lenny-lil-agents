@@ -55,6 +55,13 @@ class TerminalView: NSView {
     var isShowingDropTarget = false
     var isExpertMode = false
     var isReplayingTranscript = false
+    var starterPackWelcomeBannerDismissed = false
+    var currentWelcomeArchiveMode: AppSettings.ArchiveAccessMode?
+    var currentWelcomeSuggestions: [(String, String, String)] = []
+    var lastRenderedWelcomeSignature: String?
+    var lastObservedWelcomePreviewMode = AppSettings.welcomePreviewMode
+    var settingsObserver: NSObjectProtocol?
+    let officialMCPURL = URL(string: "https://www.lennydata.com")!
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -68,6 +75,9 @@ class TerminalView: NSView {
 
     deinit {
         liveStatusAvatarTimer?.invalidate()
+        if let settingsObserver {
+            NotificationCenter.default.removeObserver(settingsObserver)
+        }
     }
 
     var theme: PopoverTheme {

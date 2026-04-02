@@ -71,6 +71,43 @@ enum AppSettings {
         case officialMCP
     }
 
+    enum WelcomePreviewMode: String, CaseIterable {
+        case live
+        case starterPackWithBanner
+        case starterPackConnected
+        case officialConnected
+
+        var label: String {
+            switch self {
+            case .live:
+                return "Live behavior"
+            case .starterPackWithBanner:
+                return "Starter Pack + banner"
+            case .starterPackConnected:
+                return "Starter Pack, already connected"
+            case .officialConnected:
+                return "Official MCP connected"
+            }
+        }
+    }
+
+    enum OfficialMCPSource: String, CaseIterable {
+        case settingsToken
+        case codexGlobalConfig
+        case claudeGlobalConfig
+
+        var label: String {
+            switch self {
+            case .settingsToken:
+                return "saved token"
+            case .codexGlobalConfig:
+                return "Codex"
+            case .claudeGlobalConfig:
+                return "Claude Code"
+            }
+        }
+    }
+
     static let preferredTransportKey = "preferredTransport"
     static let archiveAccessModeKey = "archiveAccessMode"
     static let officialLennyMCPTokenKey = "officialLennyMCPToken"
@@ -78,6 +115,7 @@ enum AppSettings {
     static let preferredClaudeModelKey = "preferredClaudeModel"
     static let preferredCodexModelKey = "preferredCodexModel"
     static let preferredOpenAIModelKey = "preferredOpenAIModel"
+    static let welcomePreviewModeKey = "welcomePreviewMode"
 
     static var preferredTransport: PreferredTransport {
         get {
@@ -91,7 +129,7 @@ enum AppSettings {
 
     static var archiveAccessMode: ArchiveAccessMode {
         get {
-            let rawValue = UserDefaults.standard.string(forKey: archiveAccessModeKey) ?? ArchiveAccessMode.starterPack.rawValue
+            let rawValue = UserDefaults.standard.string(forKey: archiveAccessModeKey) ?? ArchiveAccessMode.officialMCP.rawValue
             return ArchiveAccessMode(rawValue: rawValue) ?? .starterPack
         }
         set {
@@ -117,7 +155,28 @@ enum AppSettings {
     }
 
     static var effectiveArchiveAccessMode: ArchiveAccessMode {
-        archiveAccessMode
+        guard archiveAccessMode != .starterPack else { return .starterPack }
+        return detectedOfficialMCPSources.isEmpty ? .starterPack : .officialMCP
+    }
+
+    static var detectedOfficialMCPSources: [OfficialMCPSource] {
+        var sources: [OfficialMCPSource] = []
+
+        if officialLennyMCPToken != nil {
+            sources.append(.settingsToken)
+        }
+        if containsOfficialMCPConfiguration(at: homeDirectoryURL.appendingPathComponent(".codex/config.toml")) {
+            sources.append(.codexGlobalConfig)
+        }
+        if claudeGlobalConfigURLs.contains(where: containsOfficialMCPConfiguration(at:)) {
+            sources.append(.claudeGlobalConfig)
+        }
+
+        return sources
+    }
+
+    static var hasDetectedOfficialMCPConfiguration: Bool {
+        !detectedOfficialMCPSources.isEmpty
     }
 
     static var debugLoggingEnabled: Bool {
@@ -160,5 +219,41 @@ enum AppSettings {
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: preferredOpenAIModelKey)
         }
+    }
+
+    static var welcomePreviewMode: WelcomePreviewMode {
+        get {
+            let rawValue = UserDefaults.standard.string(forKey: welcomePreviewModeKey) ?? WelcomePreviewMode.live.rawValue
+            return WelcomePreviewMode(rawValue: rawValue) ?? .live
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: welcomePreviewModeKey)
+        }
+    }
+
+    private static let officialMCPMarkers = [
+        "https://mcp.lennysdata.com/mcp",
+        "lennysdata"
+    ]
+
+    private static var homeDirectoryURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+    }
+
+    private static var claudeGlobalConfigURLs: [URL] {
+        [
+            homeDirectoryURL.appendingPathComponent(".claude.json"),
+            homeDirectoryURL.appendingPathComponent(".claude/settings.json"),
+            homeDirectoryURL.appendingPathComponent(".claude/settings.local.json")
+        ]
+    }
+
+    private static func containsOfficialMCPConfiguration(at url: URL) -> Bool {
+        guard let contents = try? String(contentsOf: url, encoding: .utf8) else {
+            return false
+        }
+
+        let lowered = contents.lowercased()
+        return lowered.contains("lennysdata") && lowered.contains(ClaudeSession.Constants.lennyMCPURL.lowercased())
     }
 }

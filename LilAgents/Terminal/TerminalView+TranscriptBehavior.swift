@@ -1,6 +1,22 @@
 import AppKit
 
 extension TerminalView {
+    private func resetWelcomeStateTracking() {
+        currentWelcomeArchiveMode = nil
+        currentWelcomeSuggestions = []
+        lastRenderedWelcomeSignature = nil
+    }
+
+    private func clearTranscriptStackViews() {
+        let arranged = transcriptStack.arrangedSubviews
+        for view in arranged {
+            transcriptStack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        transcriptSuggestionView = nil
+        transcriptLiveStatusView = nil
+    }
+
     private func isTranscriptNearBottom(threshold: CGFloat = 48) -> Bool {
         resizeTranscriptToFitContent()
         guard let docView = scrollView.documentView else {
@@ -125,18 +141,56 @@ extension TerminalView {
         suggestionsView.heightAnchor.constraint(equalToConstant: expertSuggestionCardHeight(for: entry.experts.count)).isActive = true
     }
 
-    func showWelcomeGreeting() {
+    private func appendStarterPackUpsellCard(compact: Bool = false) {
+        let upsell = StarterPackUpsellCardView(theme: theme, compact: compact)
+        upsell.onConnectTapped = { [weak self] in
+            self?.openOfficialMCPURL()
+        }
+        upsell.onSettingsTapped = { [weak self] in
+            self?.openAppSettings()
+        }
+        transcriptStack.addArrangedSubview(upsell)
+        upsell.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
+
+        if !isReplayingTranscript {
+            scrollTranscriptViewIntoView(upsell, topPadding: 12, bottomPadding: 28, preferBottomEdge: true)
+        }
+    }
+
+    func showWelcomeGreeting(forceRefresh: Bool = false) {
+        ensureWelcomeSuggestionSelection(forceRefresh: forceRefresh || !isShowingInitialWelcomeState)
+        let archiveMode = currentWelcomeArchiveMode ?? welcomePreviewArchiveMode
+        let welcomeSignature = "\(archiveMode.rawValue)|\(shouldPresentStarterPackWelcomeBanner ? "banner" : "chips")"
+
+        if !forceRefresh,
+           isShowingInitialWelcomeState,
+           lastRenderedWelcomeSignature == welcomeSignature,
+           transcriptStack.arrangedSubviews.count == 1,
+           transcriptStack.arrangedSubviews.first is ChatBubbleView {
+            showWelcomeSuggestionsPanel()
+            scrollToTop()
+            return
+        }
+
         clearTranscriptSuggestionView()
+        clearTranscriptLiveStatus()
         hideWelcomeSuggestionsPanel()
         isShowingInitialWelcomeState = true
+        clearTranscriptStackViews()
         let t = theme
-        let greeting = "I'm Lil-Lenny. Ask me anything about product, growth, leadership, pricing, startups, or AI.\n\nYour desktop shortcut to LennyData."
+        let greeting: String
+        if archiveMode == .starterPack {
+            greeting = "I'm Lil-Lenny. The Starter Pack on this Mac includes 10 newsletters and 50 podcast transcripts."
+        } else {
+            greeting = "I'm Lil-Lenny. Ask me about product, growth, leadership, pricing, startups, or AI."
+        }
         let attrText = NSAttributedString(string: greeting, attributes: [
             .font: t.font,
             .foregroundColor: t.textPrimary,
         ])
         appendBubble(text: attrText, isUser: false, speaker: TranscriptSpeaker(name: "Lil-Lenny", avatarPath: nil, kind: .lenny))
 
+        lastRenderedWelcomeSignature = welcomeSignature
         showWelcomeSuggestionsPanel()
         scrollToTop()
     }
@@ -145,13 +199,14 @@ extension TerminalView {
         clearTranscriptSuggestionView()
         hideWelcomeSuggestionsPanel()
         isShowingInitialWelcomeState = false
+        resetWelcomeStateTracking()
 
         let greeting = "I'm \(expert.name). What would you like to dig into?"
         let attrText = NSAttributedString(string: greeting, attributes: [
             .font: theme.font,
             .foregroundColor: theme.textPrimary,
         ])
-        transcriptStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        clearTranscriptStackViews()
         appendBubble(
             text: attrText,
             isUser: false,
@@ -165,6 +220,7 @@ extension TerminalView {
 
     func appendUser(_ text: String, attachments: [SessionAttachment] = []) {
         isShowingInitialWelcomeState = false
+        resetWelcomeStateTracking()
         let t = theme
         let visibleText = text.isEmpty ? "Sent with attachment" : text
         let attrText = NSMutableAttributedString(string: visibleText, attributes: [
@@ -180,7 +236,12 @@ extension TerminalView {
             ]))
         }
 
-        appendBubble(text: attrText, isUser: true, speaker: TranscriptSpeaker(name: "You", avatarPath: nil, kind: .user))
+        appendBubble(
+            text: attrText,
+            isUser: true,
+            speaker: TranscriptSpeaker(name: "You", avatarPath: nil, kind: .user),
+            showsSpeakerHeader: false
+        )
     }
 
     func appendStreamingText(_ text: String) {
@@ -278,13 +339,13 @@ extension TerminalView {
         let shouldStickToBottom = isTranscriptNearBottom(threshold: 72)
 
         isShowingInitialWelcomeState = false
+        resetWelcomeStateTracking()
         isReplayingTranscript = true
-        transcriptStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        transcriptSuggestionView = nil
-        transcriptLiveStatusView = nil
+        clearTranscriptStackViews()
         hideWelcomeSuggestionsPanel()
         currentAssistantText = ""
         var lastRole: ClaudeSession.Message.Role?
+        var assistantCount = 0
         let suggestionsByAnchor = Dictionary(grouping: expertSuggestions, by: \.anchorHistoryCount)
 
         for (index, msg) in messages.enumerated() {
@@ -292,6 +353,7 @@ extension TerminalView {
             case .user:
                 appendUser(msg.text)
             case .assistant:
+                assistantCount += 1
                 let speaker = msg.speaker ?? TranscriptSpeaker(name: t.titleString, avatarPath: nil, kind: .lenny)
                 let formatted = TerminalMarkdownRenderer.render(msg.text, theme: t)
                 appendBubble(text: formatted, isUser: false, speaker: speaker, followUpExpert: msg.followUpExpert)
@@ -310,6 +372,10 @@ extension TerminalView {
                     appendSuggestionEntryView(entry)
                 }
             }
+        }
+
+        if shouldShowStarterPackUpsell && assistantCount == 1 {
+            appendStarterPackUpsellCard()
         }
 
         if lastRole == .assistant {

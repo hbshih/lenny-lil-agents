@@ -1,8 +1,7 @@
 import Foundation
 
 extension ClaudeSession {
-    func callClaudeCodeCLI(executablePath: String, message: String, attachments: [SessionAttachment], environment: [String: String], expert: ResponderExpert?, conversationKey: String, archiveContext: String?, officialMCPToken: String?) {
-        let useOfficialMCP = officialMCPToken != nil
+    func callClaudeCodeCLI(executablePath: String, message: String, attachments: [SessionAttachment], environment: [String: String], expert: ResponderExpert?, conversationKey: String, archiveContext: String?, officialMCPToken: String?, useOfficialMCP: Bool) {
         let modelLabel = selectedClaudeModelLabel()
         let planningSummary = useOfficialMCP
             ? "Calling \(modelLabel) in Claude Code with Lenny MCP"
@@ -75,11 +74,7 @@ extension ClaudeSession {
             workingDirectory: preferredWorkingDirectoryURL(),
             onLineReceived: { [weak self] line in
                 guard let self else { return }
-                SessionDebugLogger.traceMultiline(
-                    "claude-transport",
-                    header: "raw Claude transport line",
-                    body: line
-                )
+                SessionDebugLogger.trace("claude-transport", line)
                 if let data = line.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let event = self.claudeCLIStreamEvent(from: json) {
@@ -129,15 +124,15 @@ extension ClaudeSession {
         }
     }
 
-    func callCodexCLI(executablePath: String, message: String, attachments: [SessionAttachment], environment: [String: String], expert: ResponderExpert?, conversationKey: String, archiveContext: String?, useBundledMCP: Bool) {
+    func callCodexCLI(executablePath: String, message: String, attachments: [SessionAttachment], environment: [String: String], expert: ResponderExpert?, conversationKey: String, archiveContext: String?, useOfficialMCP: Bool) {
         let modelLabel = selectedCodexModelLabel()
-        let planningSummary = useBundledMCP
+        let planningSummary = useOfficialMCP
             ? "Calling \(modelLabel) in Codex with Lenny MCP"
             : "Calling \(modelLabel) in Codex"
         onToolUse?("Planning", ["summary": planningSummary])
         appendHistory(Message(role: .toolUse, text: "Planning: \(planningSummary)"), to: conversationKey)
 
-        let prompt = buildConversationPrompt(message: message, attachments: attachments, expert: expert, conversationKey: conversationKey, archiveContext: archiveContext, expectMCP: useBundledMCP)
+        let prompt = buildConversationPrompt(message: message, attachments: attachments, expert: expert, conversationKey: conversationKey, archiveContext: archiveContext, expectMCP: useOfficialMCP)
         let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("lenny-codex-last-message-\(UUID().uuidString).md")
         var runtimeEnvironment = environment
         if let token = officialMCPToken(from: environment) {
@@ -157,7 +152,7 @@ extension ClaudeSession {
             args.append(contentsOf: ["-m", model])
         }
 
-        if useBundledMCP, officialMCPToken(from: environment) != nil {
+        if useOfficialMCP, officialMCPToken(from: environment) != nil {
             args.append(contentsOf: [
                 "-c",
                 "mcp_servers.\(Constants.lennyMCPServerLabel).url=\"\(Constants.lennyMCPURL)\"",
@@ -174,7 +169,7 @@ extension ClaudeSession {
 
         SessionDebugLogger.logMultiline(
             "codex-cli",
-            header: "dispatching Codex CLI. executable=\(executablePath) useOfficialMCP=\(useBundledMCP) args=\(args)",
+            header: "dispatching Codex CLI. executable=\(executablePath) useOfficialMCP=\(useOfficialMCP) args=\(args)",
             body: prompt
         )
 
@@ -182,7 +177,7 @@ extension ClaudeSession {
             executablePath: executablePath,
             arguments: args,
             environment: runtimeEnvironment,
-            workingDirectory: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            workingDirectory: preferredWorkingDirectoryURL()
         ) { [weak self] status, stdout, stderr in
             guard let self else { return }
             defer { try? FileManager.default.removeItem(at: outputURL) }

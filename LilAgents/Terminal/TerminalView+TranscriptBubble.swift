@@ -105,7 +105,7 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
         let p = NSMutableParagraphStyle()
         p.lineSpacing = 4
         p.paragraphSpacing = 7
-        p.alignment = isUser ? .right : .left
+        p.alignment = .left
         textView.defaultParagraphStyle = p
         bubbleBackground.addSubview(textView)
 
@@ -115,7 +115,7 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
         actionRow.translatesAutoresizingMaskIntoConstraints = false
         contentColumn.addArrangedSubview(actionRow)
 
-        NSLayoutConstraint.activate([
+        var constraints = [
             contentColumn.topAnchor.constraint(equalTo: topAnchor),
             contentColumn.leadingAnchor.constraint(equalTo: leadingAnchor),
             contentColumn.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -125,10 +125,17 @@ class ChatBubbleView: NSView, NSTextViewDelegate {
             textView.bottomAnchor.constraint(equalTo: bubbleBackground.bottomAnchor),
             textView.leadingAnchor.constraint(equalTo: bubbleBackground.leadingAnchor),
             textView.trailingAnchor.constraint(equalTo: bubbleBackground.trailingAnchor),
+        ]
 
-            bubbleBackground.leadingAnchor.constraint(greaterThanOrEqualTo: contentColumn.leadingAnchor, constant: isUser ? 56 : 0),
-            bubbleBackground.trailingAnchor.constraint(equalTo: contentColumn.trailingAnchor, constant: isUser ? 0 : -56),
-        ])
+        if isUser {
+            constraints.append(bubbleBackground.leadingAnchor.constraint(greaterThanOrEqualTo: contentColumn.leadingAnchor, constant: 56))
+            constraints.append(bubbleBackground.trailingAnchor.constraint(equalTo: contentColumn.trailingAnchor))
+        } else {
+            constraints.append(bubbleBackground.leadingAnchor.constraint(equalTo: contentColumn.leadingAnchor))
+            constraints.append(bubbleBackground.trailingAnchor.constraint(lessThanOrEqualTo: contentColumn.trailingAnchor, constant: -56))
+        }
+
+        NSLayoutConstraint.activate(constraints)
 
         contentColumn.setContentHuggingPriority(.required, for: .vertical)
         contentColumn.setContentCompressionResistancePriority(.required, for: .vertical)

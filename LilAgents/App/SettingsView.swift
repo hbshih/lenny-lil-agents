@@ -2,12 +2,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage(AppSettings.preferredTransportKey) private var preferredTransport = AppSettings.PreferredTransport.automatic.rawValue
-    @AppStorage(AppSettings.archiveAccessModeKey) private var archiveAccessMode = AppSettings.ArchiveAccessMode.starterPack.rawValue
+    @AppStorage(AppSettings.archiveAccessModeKey) private var archiveAccessMode = AppSettings.ArchiveAccessMode.officialMCP.rawValue
     @AppStorage(AppSettings.officialLennyMCPTokenKey) private var officialToken = ""
     @AppStorage(AppSettings.debugLoggingEnabledKey) private var debugLoggingEnabled = true
     @AppStorage(AppSettings.preferredClaudeModelKey) private var preferredClaudeModel = AppSettings.ClaudeModel.default.rawValue
     @AppStorage(AppSettings.preferredCodexModelKey) private var preferredCodexModel = AppSettings.CodexModel.default.rawValue
     @AppStorage(AppSettings.preferredOpenAIModelKey) private var preferredOpenAIModel = AppSettings.OpenAIModel.gpt5Nano.rawValue
+    @AppStorage(AppSettings.welcomePreviewModeKey) private var welcomePreviewMode = AppSettings.WelcomePreviewMode.live.rawValue
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -74,15 +75,18 @@ struct SettingsView: View {
                 // Archive Source
                 SettingsSection(icon: "archivebox.fill", title: "Archive Access") {
                     Picker("Source", selection: $archiveAccessMode) {
-                        Text("Starter pack — local sample archive")
+                        Text("Starter Pack only")
                             .tag(AppSettings.ArchiveAccessMode.starterPack.rawValue)
-                        Text("Official Lenny archive")
+                        Text("Official archive when connected")
                             .tag(AppSettings.ArchiveAccessMode.officialMCP.rawValue)
                     }
                     .pickerStyle(.radioGroup)
                     .labelsHidden()
 
-                    Text("Starter pack searches the bundled archive on your Mac. The official archive uses your own Lenny access through Claude Code, Codex, or a bearer token. Saving a token does not override Starter pack until you switch the source.")
+                    Text("Starter Pack stays on the bundled local archive. Official archive mode automatically uses your Lenny MCP setup when available and falls back to the starter pack only when nothing is configured yet.")
+                        .settingsCaption()
+
+                    Text(detectedOfficialArchiveText)
                         .settingsCaption()
                 }
 
@@ -129,6 +133,19 @@ struct SettingsView: View {
                         .settingsCaption()
                 }
 
+                SettingsSection(icon: "rectangle.on.rectangle", title: "Welcome Preview") {
+                    Picker("Preview mode", selection: $welcomePreviewMode) {
+                        ForEach(AppSettings.WelcomePreviewMode.allCases, id: \.rawValue) { mode in
+                            Text(mode.label).tag(mode.rawValue)
+                        }
+                    }
+                    .pickerStyle(.radioGroup)
+                    .labelsHidden()
+
+                    Text("This only changes the starting screen preview. It does not change real archive routing or transport selection.")
+                        .settingsCaption()
+                }
+
                 SettingsSection(icon: "person.text.rectangle.fill", title: "Credits") {
                     Text("This app is a fork of Ryan Stephen’s original lil agents project. The original concept and code remain credited under the MIT License.")
                         .settingsCaption()
@@ -144,13 +161,16 @@ struct SettingsView: View {
 
     private var statusText: String {
         if archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue {
-            return "Using the starter pack on this device"
+            return "Using the bundled starter pack included with the app"
         }
         let trimmed = officialToken.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
             return "Using the official archive with the saved Settings token"
         }
-        return "Using the official archive through your CLI setup"
+        if !AppSettings.detectedOfficialMCPSources.isEmpty {
+            return "Using the official archive through \(detectedOfficialSourceLabel)"
+        }
+        return "Official archive is selected and will fall back to the starter pack until you connect MCP"
     }
 
     private var statusIcon: String {
@@ -200,6 +220,28 @@ struct SettingsView: View {
             return "terminal.fill"
         case .openAIAPI:
             return "network.badge.shield.half.filled"
+        }
+    }
+
+    private var detectedOfficialArchiveText: String {
+        if AppSettings.hasDetectedOfficialMCPConfiguration {
+            return "Detected official MCP in \(detectedOfficialSourceLabel). You do not need the Starter Pack upgrade prompt on this Mac."
+        }
+        return "No official MCP setup was detected yet. The app will stay on the bundled starter archive until you connect Claude Code, Codex, or save a bearer token."
+    }
+
+    private var detectedOfficialSourceLabel: String {
+        let labels = AppSettings.detectedOfficialMCPSources.map(\.label)
+        switch labels.count {
+        case 0:
+            return "your current setup"
+        case 1:
+            return labels[0]
+        case 2:
+            return "\(labels[0]) and \(labels[1])"
+        default:
+            let prefix = labels.dropLast().joined(separator: ", ")
+            return "\(prefix), and \(labels.last ?? "your current setup")"
         }
     }
 }

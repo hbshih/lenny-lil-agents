@@ -34,8 +34,7 @@ extension ChatBubbleView {
     func updateTextAlignment() {
         guard let storage = textView.textStorage else { return }
 
-        let shouldLeftAlign = isUser && (storage.string.contains("\n") || storage.length > 72)
-        let alignment: NSTextAlignment = shouldLeftAlign ? .left : (isUser ? .right : .left)
+        let alignment: NSTextAlignment = .left
 
         let fullRange = NSRange(location: 0, length: storage.length)
         storage.beginEditing()
