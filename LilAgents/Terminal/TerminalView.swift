@@ -62,7 +62,7 @@ class TerminalView: NSView {
     var lastObservedWelcomePreviewMode = AppSettings.welcomePreviewMode
     var isShowingOfficialMCPSetupPanel = false
     var settingsObserver: NSObjectProtocol?
-    let officialMCPURL = URL(string: "https://www.lennydata.com")!
+    let officialMCPURL = URL(string: "https://www.lennysdata.com")!
 
     override init(frame: NSRect) {
         super.init(frame: frame)

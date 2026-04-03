@@ -289,7 +289,7 @@ enum OfficialMCPInstaller {
         var errorDescription: String? {
             switch self {
             case .emptyToken:
-                return "Paste the auth key from lennydata.com first."
+                return "Paste the auth key from lennysdata.com first."
             case let .unableToCreateConfigDirectory(label):
                 return "Couldn’t create the local \(label) config folder."
             case let .unableToWriteConfig(label):

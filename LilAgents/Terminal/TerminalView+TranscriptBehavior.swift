@@ -141,7 +141,7 @@ extension TerminalView {
         suggestionsView.heightAnchor.constraint(equalToConstant: expertSuggestionCardHeight(for: entry.experts.count)).isActive = true
     }
 
-    private func appendStarterPackUpsellCard(compact: Bool = false) {
+    private func appendStarterPackUpsellCard(compact: Bool = true) {
         let upsell = StarterPackUpsellCardView(theme: theme, compact: compact)
         upsell.onConnectTapped = { [weak self] in
             self?.appendOfficialMCPSetupCard()
@@ -158,7 +158,7 @@ extension TerminalView {
     }
 
     private func appendOfficialMCPSetupCard() {
-        let setupCard = OfficialMCPConnectCardView(theme: theme, compact: false, showsBackButton: false)
+        let setupCard = OfficialMCPConnectCardView(theme: theme, compact: true, showsBackButton: false)
         setupCard.onOpenWebsite = { [weak self] in
             self?.openOfficialMCPURL()
         }

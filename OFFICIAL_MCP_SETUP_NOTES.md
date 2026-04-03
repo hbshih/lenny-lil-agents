@@ -18,7 +18,7 @@ When the user wants the official archive:
 
 - Clicking `Connect official MCP` now opens an inline setup card instead of jumping straight to Settings.
 - The card explains:
-  - open `lennydata.com`
+  - open `lennysdata.com`
   - copy the auth key
   - paste it into Lil-Lenny
   - everything stays local on the Mac
@@ -31,9 +31,9 @@ Current structure:
 
 - short title
 - one short explanatory sentence
-- local-only badge in the title row, top-right
-- `Get auth key`
+- local-only badge in the title row beside the title
 - one auth-key input row
+- `Get auth key` in the same row as the input for compact mode
 - one compact detected-target hint
 - `Connect`
 - `Back`
@@ -43,6 +43,9 @@ Implementation notes:
 - the auth key field is rendered as a single custom inset row instead of a stack of nested wrappers
 - the compact card now uses explicit `14pt` leading/trailing constraints instead of stack `edgeInsets`, which fixed the left-padding drift on title, input, and detection text
 - the target-detection copy now uses a compact hint instead of the full long summary
+- the transcript starter-pack upsell and the welcome-panel connect flow now both use the same compact MCP card so the UI stays consistent
+- in compact mode, the detection hint is hidden by default and only shown after save if there is a success or error result
+- the secure token field now listens to live text-change notifications, so pasting a token enables `Connect` immediately
 - compact controls were tightened further:
   - smaller vertical insets
   - smaller helper text
@@ -190,6 +193,7 @@ These are the parts most likely to need refinement later:
 5. The settings token is still used as a universal fallback for official MCP mode. That is useful, but we may want to make the “connected client vs saved token” distinction more explicit in future UI.
 6. The inline onboarding card is intentionally compact now, but it is still constrained by the transcript/popover layout. If this continues to feel brittle, the cleanest next step is a dedicated compact sheet instead of a transcript-embedded setup card.
 7. The detected-target hint is now intentionally short. If we need richer troubleshooting later, that should likely live behind an expandable detail state instead of being shown by default.
+8. The compact card currently optimizes for low-height embedding inside the transcript/welcome panel. If the connect flow needs richer explanation later, it should likely become a second-step sheet rather than growing the inline card again.
 
 ## Files Touched
 
