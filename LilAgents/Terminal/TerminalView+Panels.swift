@@ -103,6 +103,43 @@ extension TerminalView {
         NSWorkspace.shared.open(officialMCPURL)
     }
 
+    func completeOfficialMCPSetupFlow() {
+        isShowingOfficialMCPSetupPanel = false
+        starterPackWelcomeBannerDismissed = true
+        currentWelcomeArchiveMode = nil
+        showWelcomeSuggestionsPanel()
+    }
+
+    func showOfficialMCPSetupPanel() {
+        expertSuggestionStack.arrangedSubviews.forEach { view in
+            expertSuggestionStack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        isShowingOfficialMCPSetupPanel = true
+
+        let setupCard = OfficialMCPConnectCardView(theme: theme, compact: true, showsBackButton: true)
+        setupCard.onOpenWebsite = { [weak self] in
+            self?.openOfficialMCPURL()
+        }
+        setupCard.onBack = { [weak self] in
+            guard let self else { return }
+            self.isShowingOfficialMCPSetupPanel = false
+            self.showWelcomeSuggestionsPanel()
+        }
+        setupCard.onSave = { [weak self] _ in
+            self?.completeOfficialMCPSetupFlow()
+        }
+
+        expertSuggestionLabel.isHidden = true
+        expertSuggestionStack.addArrangedSubview(setupCard)
+        setupCard.widthAnchor.constraint(equalTo: expertSuggestionStack.widthAnchor).isActive = true
+        welcomeChipsView = nil
+        expertSuggestionContainer.isHidden = false
+        expertSuggestionContainer.alphaValue = 1
+        relayoutPanels()
+    }
+
     func openAppSettings() {
         NSApp.sendAction(#selector(AppDelegate.openSettings), to: NSApp.delegate, from: self)
     }
@@ -113,10 +150,15 @@ extension TerminalView {
             view.removeFromSuperview()
         }
 
+        if isShowingOfficialMCPSetupPanel {
+            showOfficialMCPSetupPanel()
+            return
+        }
+
         if shouldPresentStarterPackWelcomeBanner {
             let upsell = StarterPackUpsellCardView(theme: theme, compact: true, showsSkipButton: true)
             upsell.onConnectTapped = { [weak self] in
-                self?.openOfficialMCPURL()
+                self?.showOfficialMCPSetupPanel()
             }
             upsell.onSkipTapped = { [weak self] in
                 self?.starterPackWelcomeBannerDismissed = true

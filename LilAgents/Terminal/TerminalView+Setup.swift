@@ -8,8 +8,8 @@ extension TerminalView {
         isExpertMode = false
 
         // Corner radius design system:
-        //   Window: 18  ·  Composer shell: full pill  ·  Attachment strip: full pill  ·  Buttons: circle
-        let composerRadius = Layout.composerHeight / 2
+        //   Window: 18  ·  Composer shell: 18  ·  Attachment strip: full pill  ·  Buttons: circle
+        let composerRadius: CGFloat = 18
         let attachmentRadius = Layout.attachmentStripHeight / 2
         scrollView.frame = NSRect(
             x: Layout.padding,

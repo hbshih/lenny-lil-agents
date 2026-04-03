@@ -95,19 +95,18 @@ struct SettingsView: View {
                     SecureField("Optional bearer token", text: $officialToken)
                         .textFieldStyle(.roundedBorder)
 
-                    Text("Leave this blank if you already set up the archive in Claude Code or Codex. Paste a bearer token only if you want the app to connect directly.")
+                    Text("Paste your LennyData auth key here if you want Lil-Lenny to connect locally on this Mac. The app stores it locally, configures Claude Code and/or Codex when detected, and keeps any existing MCP setup intact.")
                         .settingsCaption()
 
                     VStack(alignment: .leading, spacing: 8) {
                         SettingsCodeBlock(
-                            label: "Claude Code",
-                            code: "claude mcp add lennysdata --transport http https://mcp.lennysdata.com/mcp --header \"Authorization: Bearer <your-token>\""
-                        )
-                        SettingsCodeBlock(
-                            label: "Codex (two steps)",
-                            code: "codex mcp add lennysdata --url https://mcp.lennysdata.com/mcp\ncodex mcp login lennysdata"
+                            label: "Get your key",
+                            code: "Open lennydata.com, copy your auth key, and paste it above."
                         )
                     }
+
+                    Text(OfficialMCPInstaller.installTargetStatusSummary())
+                        .settingsCaption()
 
                     HStack(alignment: .center) {
                         Label(statusText, systemImage: statusIcon)
@@ -163,12 +162,12 @@ struct SettingsView: View {
         if archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue {
             return "Using the bundled starter pack included with the app"
         }
+        if !AppSettings.detectedOfficialMCPSources.isEmpty {
+            return "Using the official archive through \(detectedOfficialSourceLabel)"
+        }
         let trimmed = officialToken.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
             return "Using the official archive with the saved Settings token"
-        }
-        if !AppSettings.detectedOfficialMCPSources.isEmpty {
-            return "Using the official archive through \(detectedOfficialSourceLabel)"
         }
         return "Official archive is selected and will fall back to the starter pack until you connect MCP"
     }

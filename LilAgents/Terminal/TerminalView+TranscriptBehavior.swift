@@ -144,7 +144,7 @@ extension TerminalView {
     private func appendStarterPackUpsellCard(compact: Bool = false) {
         let upsell = StarterPackUpsellCardView(theme: theme, compact: compact)
         upsell.onConnectTapped = { [weak self] in
-            self?.openOfficialMCPURL()
+            self?.appendOfficialMCPSetupCard()
         }
         upsell.onSettingsTapped = { [weak self] in
             self?.openAppSettings()
@@ -154,6 +154,23 @@ extension TerminalView {
 
         if !isReplayingTranscript {
             scrollTranscriptViewIntoView(upsell, topPadding: 12, bottomPadding: 28, preferBottomEdge: true)
+        }
+    }
+
+    private func appendOfficialMCPSetupCard() {
+        let setupCard = OfficialMCPConnectCardView(theme: theme, compact: false, showsBackButton: false)
+        setupCard.onOpenWebsite = { [weak self] in
+            self?.openOfficialMCPURL()
+        }
+        setupCard.onSave = { [weak self] _ in
+            self?.starterPackWelcomeBannerDismissed = true
+            self?.currentWelcomeArchiveMode = nil
+        }
+        transcriptStack.addArrangedSubview(setupCard)
+        setupCard.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
+
+        if !isReplayingTranscript {
+            scrollTranscriptViewIntoView(setupCard, topPadding: 12, bottomPadding: 28, preferBottomEdge: true)
         }
     }
 
@@ -180,9 +197,9 @@ extension TerminalView {
         let t = theme
         let greeting: String
         if archiveMode == .starterPack {
-            greeting = "I'm Lil-Lenny. The Starter Pack on this Mac includes 10 newsletters and 50 podcast transcripts."
+            greeting = "Hi, I'm Lil-Lenny. Ask me anything about product, growth, leadership, pricing, startups, or AI, and I'll help you think it through with LennyData."
         } else {
-            greeting = "I'm Lil-Lenny. Ask me about product, growth, leadership, pricing, startups, or AI."
+            greeting = "Hi, I'm Lil-Lenny. Ask me anything about product, growth, leadership, pricing, startups, or AI, and I'll help you think it through with LennyData."
         }
         let attrText = NSAttributedString(string: greeting, attributes: [
             .font: t.font,

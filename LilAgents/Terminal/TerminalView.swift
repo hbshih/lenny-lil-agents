@@ -60,6 +60,7 @@ class TerminalView: NSView {
     var currentWelcomeSuggestions: [(String, String, String)] = []
     var lastRenderedWelcomeSignature: String?
     var lastObservedWelcomePreviewMode = AppSettings.welcomePreviewMode
+    var isShowingOfficialMCPSetupPanel = false
     var settingsObserver: NSObjectProtocol?
     let officialMCPURL = URL(string: "https://www.lennydata.com")!
 
