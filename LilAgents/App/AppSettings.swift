@@ -111,6 +111,7 @@ enum AppSettings {
     static let preferredTransportKey = "preferredTransport"
     static let archiveAccessModeKey = "archiveAccessMode"
     static let officialLennyMCPTokenKey = "officialLennyMCPToken"
+    static let openAIAPIKeyKey = "openAIAPIKey"
     static let debugLoggingEnabledKey = "debugLoggingEnabled"
     static let preferredClaudeModelKey = "preferredClaudeModel"
     static let preferredCodexModelKey = "preferredCodexModel"
@@ -150,6 +151,23 @@ enum AppSettings {
                 UserDefaults.standard.removeObject(forKey: officialLennyMCPTokenKey)
             } else {
                 UserDefaults.standard.set(trimmed, forKey: officialLennyMCPTokenKey)
+            }
+        }
+    }
+
+    static var openAIAPIKey: String? {
+        get {
+            let value = UserDefaults.standard.string(forKey: openAIAPIKeyKey)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }
+        set {
+            let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if trimmed.isEmpty {
+                UserDefaults.standard.removeObject(forKey: openAIAPIKeyKey)
+            } else {
+                UserDefaults.standard.set(trimmed, forKey: openAIAPIKeyKey)
             }
         }
     }

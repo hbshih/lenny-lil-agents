@@ -37,6 +37,13 @@ extension ClaudeSession {
                     }
                 }
 
+                if (environment["OPENAI_API_KEY"] ?? "").isEmpty,
+                   let storedKey = AppSettings.openAIAPIKey,
+                   !storedKey.isEmpty {
+                    environment["OPENAI_API_KEY"] = storedKey
+                    SessionDebugLogger.log("env", "using locally stored OPENAI_API_KEY from Settings")
+                }
+
                 Self.shellEnvironment = environment
                 Self.openAIKey = environment["OPENAI_API_KEY"]
                 SessionDebugLogger.log("env", "resolved shell environment: \(SessionDebugLogger.summarizeEnvironment(environment))")

@@ -1,21 +1,185 @@
+import AppKit
 import SwiftUI
+
+private enum SettingsPane: String, CaseIterable, Identifiable {
+    case source
+    case models
+    case about
+    case developer
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .source: return "Lenny source"
+        case .models: return "Models"
+        case .about: return "About"
+        case .developer: return "Developer"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .source: return "Starter Pack or Full LennyData"
+        case .models: return "Runtime and model choices"
+        case .about: return "Credits and release notes"
+        case .developer: return "Logs and preview states"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .source: return "books.vertical.fill"
+        case .models: return "cpu.fill"
+        case .about: return "person.text.rectangle.fill"
+        case .developer: return "wrench.and.screwdriver.fill"
+        }
+    }
+}
 
 struct SettingsView: View {
     @AppStorage(AppSettings.preferredTransportKey) private var preferredTransport = AppSettings.PreferredTransport.automatic.rawValue
     @AppStorage(AppSettings.archiveAccessModeKey) private var archiveAccessMode = AppSettings.ArchiveAccessMode.officialMCP.rawValue
     @AppStorage(AppSettings.officialLennyMCPTokenKey) private var officialToken = ""
+    @AppStorage(AppSettings.openAIAPIKeyKey) private var openAIAPIKey = ""
     @AppStorage(AppSettings.debugLoggingEnabledKey) private var debugLoggingEnabled = true
     @AppStorage(AppSettings.preferredClaudeModelKey) private var preferredClaudeModel = AppSettings.ClaudeModel.default.rawValue
     @AppStorage(AppSettings.preferredCodexModelKey) private var preferredCodexModel = AppSettings.CodexModel.default.rawValue
     @AppStorage(AppSettings.preferredOpenAIModelKey) private var preferredOpenAIModel = AppSettings.OpenAIModel.gpt5Nano.rawValue
     @AppStorage(AppSettings.welcomePreviewModeKey) private var welcomePreviewMode = AppSettings.WelcomePreviewMode.live.rawValue
 
+    @State private var selectedPane: SettingsPane = .source
+
+    private let officialArchiveURL = URL(string: "https://www.lennysdata.com")!
+
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 12) {
-                SettingsSection(icon: "bolt.horizontal.fill", title: "How Lenny Answers") {
-                    Picker("Transport", selection: $preferredTransport) {
-                        Text("Choose automatically")
+        NavigationSplitView {
+            List(selection: $selectedPane) {
+                ForEach(visiblePanes) { pane in
+                    SettingsSidebarRow(
+                        pane: pane,
+                        isSelected: selectedPane == pane,
+                        action: { selectedPane = pane }
+                    )
+                    .tag(pane)
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 236, max: 250)
+        } detail: {
+            ScrollView(.vertical, showsIndicators: false) {
+                currentPaneView
+                    .padding(28)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .background(Color(NSColor.windowBackgroundColor))
+        }
+        .navigationTitle("Settings")
+        .toolbar(removing: .sidebarToggle)
+        .frame(minWidth: 840, idealWidth: 920, minHeight: 620, idealHeight: 700)
+        .onChange(of: debugLoggingEnabled) { _, enabled in
+            if !enabled && selectedPane == .developer {
+                selectedPane = .source
+            }
+        }
+    }
+
+    private var visiblePanes: [SettingsPane] {
+        var panes: [SettingsPane] = [.source, .models, .about]
+        if debugLoggingEnabled {
+            panes.append(.developer)
+        }
+        return panes
+    }
+
+    @ViewBuilder
+    private var currentPaneView: some View {
+        switch selectedPane {
+        case .source:
+            sourcePane
+        case .models:
+            modelsPane
+        case .about:
+            aboutPane
+        case .developer:
+            developerPane
+        }
+    }
+
+    private var sourcePane: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsHeader(
+                title: "Lenny source",
+                subtitle: "Choose whether Lil-Lenny answers from the bundled Starter Pack or the full LennyData archive."
+            )
+
+            SettingsSectionCard(title: "Answer source", subtitle: "Starter Pack is local and fast. Full LennyData uses the official archive when available.") {
+                VStack(spacing: 0) {
+                    sourceRow(
+                        mode: .starterPack,
+                        title: "Starter Pack",
+                        subtitle: "Bundled on this Mac",
+                        detail: "Fast, local, and ready immediately for quick questions and demos.",
+                        isLast: false
+                    )
+
+                    sourceRow(
+                        mode: .officialMCP,
+                        title: "Full LennyData",
+                        subtitle: "Official archive access",
+                        detail: "Broader and deeper answers from the full LennyData archive.",
+                        isLast: archiveAccessMode != AppSettings.ArchiveAccessMode.officialMCP.rawValue
+                    )
+                }
+
+                if archiveAccessMode == AppSettings.ArchiveAccessMode.officialMCP.rawValue {
+                    Divider()
+                        .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        if AppSettings.hasDetectedOfficialMCPConfiguration {
+                            SettingsInfoRow(
+                                icon: "checkmark.circle.fill",
+                                iconColor: .accentColor,
+                                text: "MCP has already been configured locally through \(detectedOfficialSourceLabel)."
+                            )
+                        } else {
+                            HStack(alignment: .center, spacing: 12) {
+                                SecureField("Paste auth key", text: $officialToken)
+                                    .textFieldStyle(.roundedBorder)
+
+                                Button("Open lennysdata.com") {
+                                    NSWorkspace.shared.open(officialArchiveURL)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+
+                            Text("Lil-Lenny stores this auth key locally on this Mac and uses it to configure Claude Code and/or Codex without replacing any existing MCP setup.")
+                                .settingsCaption()
+
+                            SettingsInfoRow(
+                                icon: "info.circle.fill",
+                                iconColor: .secondary,
+                                text: OfficialMCPInstaller.installTargetStatusSummary()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var modelsPane: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsHeader(
+                title: "Models",
+                subtitle: "Choose how Lil-Lenny should answer on this Mac."
+            )
+
+            SettingsSectionCard(title: "Runtime", subtitle: modelSectionSubtitle) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Picker("Runtime", selection: $preferredTransport) {
+                        Text("Automatic")
                             .tag(AppSettings.PreferredTransport.automatic.rawValue)
                         Text("Claude Code")
                             .tag(AppSettings.PreferredTransport.claudeCode.rawValue)
@@ -24,128 +188,55 @@ struct SettingsView: View {
                         Text("OpenAI API")
                             .tag(AppSettings.PreferredTransport.openAIAPI.rawValue)
                     }
-                    .pickerStyle(.radioGroup)
-                    .labelsHidden()
+                    .pickerStyle(.segmented)
 
-                    Text("Automatic mode tries Claude Code first, then Codex, then the OpenAI API. Pick a single transport only if you want to force that path.")
-                        .settingsCaption()
+                    SettingsInfoRow(
+                        icon: isAutomaticSelected ? "arrow.triangle.branch" : selectedRuntimeIcon,
+                        iconColor: .accentColor,
+                        text: isAutomaticSelected ? automaticRuntimeDescription : selectedRuntimeDescription
+                    )
 
-                    HStack(alignment: .center) {
-                        Label(transportStatusText, systemImage: transportStatusIcon)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 8)
-                    }
-                }
-
-                SettingsSection(icon: "slider.horizontal.3", title: "Model Choices") {
-                    VStack(alignment: .leading, spacing: 10) {
+                    if effectiveModelTransport == .claudeCode {
                         LabeledModelPicker(
-                            title: "Claude Code",
+                            title: "Claude model",
                             selection: $preferredClaudeModel,
                             options: AppSettings.ClaudeModel.allCases.map { ($0.label, $0.rawValue) }
                         )
-
+                    } else if effectiveModelTransport == .codex {
                         LabeledModelPicker(
-                            title: "Codex",
+                            title: "Codex model",
                             selection: $preferredCodexModel,
                             options: AppSettings.CodexModel.allCases.map { ($0.label, $0.rawValue) }
                         )
+                    } else {
+                        VStack(alignment: .leading, spacing: 12) {
+                            LabeledModelPicker(
+                                title: "OpenAI model",
+                                selection: $preferredOpenAIModel,
+                                options: AppSettings.OpenAIModel.allCases.map { ($0.label, $0.rawValue) }
+                            )
 
-                        LabeledModelPicker(
-                            title: "OpenAI API",
-                            selection: $preferredOpenAIModel,
-                            options: AppSettings.OpenAIModel.allCases.map { ($0.label, $0.rawValue) }
-                        )
-                    }
+                            SecureField("Paste OpenAI API key", text: $openAIAPIKey)
+                                .textFieldStyle(.roundedBorder)
 
-                    Text("These choices apply only when that transport is active. Claude and Codex use their CLI model flags. OpenAI uses the exact API model shown here.")
-                        .settingsCaption()
-
-                    HStack(alignment: .center) {
-                        Label(activeModelStatusText, systemImage: "cpu")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 8)
-                    }
-                }
-
-                // Archive Source
-                SettingsSection(icon: "archivebox.fill", title: "Archive Access") {
-                    Picker("Source", selection: $archiveAccessMode) {
-                        Text("Starter Pack only")
-                            .tag(AppSettings.ArchiveAccessMode.starterPack.rawValue)
-                        Text("Official archive when connected")
-                            .tag(AppSettings.ArchiveAccessMode.officialMCP.rawValue)
-                    }
-                    .pickerStyle(.radioGroup)
-                    .labelsHidden()
-
-                    Text("Starter Pack stays on the bundled local archive. Official archive mode automatically uses your Lenny MCP setup when available and falls back to the starter pack only when nothing is configured yet.")
-                        .settingsCaption()
-
-                    Text(detectedOfficialArchiveText)
-                        .settingsCaption()
-                }
-
-                // MCP Configuration
-                SettingsSection(icon: "key.fill", title: "Official Archive Setup") {
-                    SecureField("Optional bearer token", text: $officialToken)
-                        .textFieldStyle(.roundedBorder)
-
-                    Text("Paste your LennyData auth key here if you want Lil-Lenny to connect locally on this Mac. The app stores it locally, configures Claude Code and/or Codex when detected, and keeps any existing MCP setup intact.")
-                        .settingsCaption()
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        SettingsCodeBlock(
-                            label: "Get your key",
-                            code: "Open lennydata.com, copy your auth key, and paste it above."
-                        )
-                    }
-
-                    Text(OfficialMCPInstaller.installTargetStatusSummary())
-                        .settingsCaption()
-
-                    HStack(alignment: .center) {
-                        Label(statusText, systemImage: statusIcon)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-
-                        Spacer(minLength: 8)
-
-                        if !officialToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Button("Clear Token") { officialToken = "" }
-                                .controlSize(.small)
-                                .buttonStyle(.bordered)
+                            Text("Used only when Lil-Lenny needs to fall back to the OpenAI API on this Mac.")
+                                .settingsCaption()
                         }
                     }
                 }
+            }
+        }
+    }
 
-                // Debug Logging
-                SettingsSection(icon: "ant.fill", title: "Debug Logs") {
-                    Toggle("Show detailed session logs in Xcode", isOn: $debugLoggingEnabled)
+    private var aboutPane: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsHeader(
+                title: "About",
+                subtitle: "Project lineage and release notes for this fork."
+            )
 
-                    Text("Includes backend selection, archive mode, MCP setup, CLI arguments, and parsed responses. Sensitive tokens are redacted.")
-                        .settingsCaption()
-                }
-
-                SettingsSection(icon: "rectangle.on.rectangle", title: "Welcome Preview") {
-                    Picker("Preview mode", selection: $welcomePreviewMode) {
-                        ForEach(AppSettings.WelcomePreviewMode.allCases, id: \.rawValue) { mode in
-                            Text(mode.label).tag(mode.rawValue)
-                        }
-                    }
-                    .pickerStyle(.radioGroup)
-                    .labelsHidden()
-
-                    Text("This only changes the starting screen preview. It does not change real archive routing or transport selection.")
-                        .settingsCaption()
-                }
-
-                SettingsSection(icon: "person.text.rectangle.fill", title: "Credits") {
+            SettingsSectionCard(title: "Credits", subtitle: "Original concept and code attribution.") {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("This app is a fork of Ryan Stephen’s original lil agents project. The original concept and code remain credited under the MIT License.")
                         .settingsCaption()
 
@@ -153,80 +244,175 @@ struct SettingsView: View {
                         .settingsCaption()
                 }
             }
-            .padding(16)
         }
-        .frame(width: 560, alignment: .topLeading)
     }
 
-    private var statusText: String {
-        if archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue {
-            return "Using the bundled starter pack included with the app"
+    private var developerPane: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsHeader(
+                title: "Developer",
+                subtitle: "Behavior toggles and preview states for local testing."
+            )
+
+            SettingsSectionCard(title: "Developer", subtitle: "Logs and preview behavior.") {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Show detailed session logs in Xcode", isOn: $debugLoggingEnabled)
+                        Text("Sensitive tokens stay redacted in logs.")
+                            .settingsCaption()
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Welcome preview")
+                            .font(.headline)
+
+                        Picker("Preview mode", selection: $welcomePreviewMode) {
+                            ForEach(AppSettings.WelcomePreviewMode.allCases, id: \.rawValue) { mode in
+                                Text(mode.label).tag(mode.rawValue)
+                            }
+                        }
+                        .pickerStyle(.radioGroup)
+                        .labelsHidden()
+                    }
+                }
+            }
         }
-        if !AppSettings.detectedOfficialMCPSources.isEmpty {
-            return "Using the official archive through \(detectedOfficialSourceLabel)"
-        }
-        let trimmed = officialToken.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            return "Using the official archive with the saved Settings token"
-        }
-        return "Official archive is selected and will fall back to the starter pack until you connect MCP"
     }
 
-    private var statusIcon: String {
-        archiveAccessMode == AppSettings.ArchiveAccessMode.starterPack.rawValue
-            ? "internaldrive.fill"
-            : "network"
+    @ViewBuilder
+    private func sourceRow(
+        mode: AppSettings.ArchiveAccessMode,
+        title: String,
+        subtitle: String,
+        detail: String,
+        isLast: Bool
+    ) -> some View {
+        let selected = archiveAccessMode == mode.rawValue
+
+        Button {
+            archiveAccessMode = mode.rawValue
+        } label: {
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                    .padding(.top, 2)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        if selected {
+                            SettingsStatusPill(title: "Selected", systemImage: "checkmark.circle.fill", tone: .accent)
+                        }
+                    }
+
+                    Text(subtitle)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+
+                    Text(detail)
+                        .settingsCaption()
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(selected ? Color.accentColor.opacity(0.06) : Color.clear)
+            .overlay(alignment: .bottom) {
+                if !isLast {
+                    Divider()
+                        .padding(.leading, 46)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 
-    private var transportStatusText: String {
-        switch AppSettings.PreferredTransport(rawValue: preferredTransport) ?? .automatic {
-        case .automatic:
-            return "Lenny will choose Claude Code first, then Codex, then the OpenAI API."
+    private var isAutomaticSelected: Bool {
+        preferredTransport == AppSettings.PreferredTransport.automatic.rawValue
+    }
+
+    private var effectiveModelTransport: AppSettings.PreferredTransport {
+        if let selected = AppSettings.PreferredTransport(rawValue: preferredTransport), selected != .automatic {
+            return selected
+        }
+
+        if AppSettings.detectedOfficialMCPSources.contains(.claudeGlobalConfig) {
+            return .claudeCode
+        }
+        if AppSettings.detectedOfficialMCPSources.contains(.codexGlobalConfig) {
+            return .codex
+        }
+        if !openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || AppSettings.openAIAPIKey != nil {
+            return .openAIAPI
+        }
+        return .openAIAPI
+    }
+
+    private var modelSectionSubtitle: String {
+        if isAutomaticSelected {
+            return "Automatic chooses the best available runtime on this Mac."
+        }
+
+        switch effectiveModelTransport {
         case .claudeCode:
-            return "Lenny will use Claude Code only. This requires a Claude login or `ANTHROPIC_API_KEY`."
+            return "Lil-Lenny will answer through Claude Code."
         case .codex:
-            return "Lenny will use Codex only. This requires a Codex login or `OPENAI_API_KEY`."
+            return "Lil-Lenny will answer through Codex."
         case .openAIAPI:
-            return "Lenny will use the OpenAI API only. This requires `OPENAI_API_KEY`."
+            return "Lil-Lenny will answer through the OpenAI API."
+        case .automatic:
+            return "Automatic chooses the best available runtime on this Mac."
         }
     }
 
-    private var activeModelStatusText: String {
-        let transport = AppSettings.PreferredTransport(rawValue: preferredTransport) ?? .automatic
-        let claude = AppSettings.ClaudeModel(rawValue: preferredClaudeModel)?.label ?? "Claude"
-        let codex = AppSettings.CodexModel(rawValue: preferredCodexModel)?.label ?? "Codex"
-        let openAI = AppSettings.OpenAIModel(rawValue: preferredOpenAIModel)?.label ?? "GPT-5 nano"
-
-        switch transport {
-        case .automatic:
-            return "Automatic mode is set to Claude: \(claude), Codex: \(codex), OpenAI API: \(openAI)."
+    private var automaticRuntimeDescription: String {
+        switch effectiveModelTransport {
         case .claudeCode:
-            return "Claude Code is set to \(claude)."
+            return "Automatic currently prefers Claude Code on this Mac."
         case .codex:
-            return "Codex is set to \(codex)."
+            return "Automatic currently prefers Codex on this Mac."
         case .openAIAPI:
-            return "OpenAI is set to \(openAI)."
+            return (AppSettings.openAIAPIKey ?? openAIAPIKey).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? "Nothing else is configured yet, so add an OpenAI API key below if you want a direct API fallback."
+                : "Automatic would fall back to the OpenAI API right now."
+        case .automatic:
+            return "Automatic chooses the best available runtime on this Mac."
         }
     }
 
-    private var transportStatusIcon: String {
-        switch AppSettings.PreferredTransport(rawValue: preferredTransport) ?? .automatic {
+    private var selectedRuntimeDescription: String {
+        switch effectiveModelTransport {
+        case .claudeCode:
+            return "Choose which Claude model Lil-Lenny should use."
+        case .codex:
+            return "Choose which Codex model Lil-Lenny should use."
+        case .openAIAPI:
+            return "Choose which OpenAI model Lil-Lenny should use and add an API key below."
         case .automatic:
-            return "arrow.triangle.branch"
+            return "Automatic chooses the best available runtime on this Mac."
+        }
+    }
+
+    private var selectedRuntimeIcon: String {
+        switch effectiveModelTransport {
         case .claudeCode:
             return "person.crop.square.fill"
         case .codex:
             return "terminal.fill"
         case .openAIAPI:
             return "network.badge.shield.half.filled"
+        case .automatic:
+            return "arrow.triangle.branch"
         }
-    }
-
-    private var detectedOfficialArchiveText: String {
-        if AppSettings.hasDetectedOfficialMCPConfiguration {
-            return "Detected official MCP in \(detectedOfficialSourceLabel). You do not need the Starter Pack upgrade prompt on this Mac."
-        }
-        return "No official MCP setup was detected yet. The app will stay on the bundled starter archive until you connect Claude Code, Codex, or save a bearer token."
     }
 
     private var detectedOfficialSourceLabel: String {
@@ -245,6 +431,139 @@ struct SettingsView: View {
     }
 }
 
+private struct SettingsSidebarRow: View {
+    let pane: SettingsPane
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pane.title)
+                        .font(.headline)
+                    Text(pane.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: pane.icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.accent)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.10))
+                    )
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsHeader: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.largeTitle.weight(.semibold))
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct SettingsSectionCard<Content: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline)
+                Text(subtitle)
+                    .settingsCaption()
+            }
+
+            content()
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        )
+    }
+}
+
+private struct SettingsInfoRow: View {
+    let icon: String
+    let iconColor: Color
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(iconColor)
+
+            Text(text)
+                .settingsCaption()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct SettingsStatusPill: View {
+    enum Tone {
+        case accent
+        case warning
+        case neutral
+    }
+
+    let title: String
+    let systemImage: String
+    let tone: Tone
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(foregroundColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(backgroundColor, in: Capsule(style: .continuous))
+    }
+
+    private var backgroundColor: Color {
+        switch tone {
+        case .accent:
+            return .accentColor.opacity(0.12)
+        case .warning:
+            return Color.orange.opacity(0.14)
+        case .neutral:
+            return Color.primary.opacity(0.06)
+        }
+    }
+
+    private var foregroundColor: Color {
+        switch tone {
+        case .accent:
+            return .accentColor
+        case .warning:
+            return .orange
+        case .neutral:
+            return .secondary
+        }
+    }
+}
+
 private struct LabeledModelPicker: View {
     let title: String
     @Binding var selection: String
@@ -254,7 +573,7 @@ private struct LabeledModelPicker: View {
         HStack(alignment: .center, spacing: 12) {
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .frame(width: 100, alignment: .leading)
+                .frame(width: 110, alignment: .leading)
 
             Picker(title, selection: $selection) {
                 ForEach(options, id: \.value) { option in
@@ -267,59 +586,6 @@ private struct LabeledModelPicker: View {
         }
     }
 }
-
-// MARK: - Reusable section card
-
-private struct SettingsSection<Content: View>: View {
-    let icon: String
-    let title: String
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 10) {
-                content()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        } label: {
-            Label(title, systemImage: icon)
-                .font(.headline)
-                .padding(.bottom, 2)
-        }
-    }
-}
-
-// MARK: - Code block
-
-private struct SettingsCodeBlock: View {
-    let label: String
-    let code: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            Text(code)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.primary)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(.separator.opacity(0.5), lineWidth: 0.75)
-                )
-        }
-    }
-}
-
-// MARK: - Convenience modifier
 
 private extension Text {
     func settingsCaption() -> some View {
