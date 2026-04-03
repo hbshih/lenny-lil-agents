@@ -4,11 +4,11 @@ This document is a fast map of the current codebase: what the app does, where th
 
 ## What This App Is
 
-`Lenny` is a macOS accessory app that places a character above the Dock and turns that character into a conversational entry point.
+`Lil-Lenny` is a macOS accessory app that places a character above the Dock and turns that character into a conversational entry point.
 
 Current behavior:
-- The main character is Lenny.
-- The shipped app product now builds as `Lenny.app`.
+- The main character is Lil-Lenny.
+- The shipped app product now builds as `Lil-Lenny.app`.
 - The current bundle identifier is `com.hbshih.lenny`.
 - User questions can run through Claude Code CLI, Codex CLI, or a direct OpenAI Responses API fallback.
 - Archive access has two modes:
@@ -53,7 +53,7 @@ LilAgents/
   Persistent app settings for archive mode, preferred transport, model selection labels, official MCP token override, and debug logging.
 
 - `LilAgents/App/SettingsView.swift`
-  Settings UI for archive mode selection, transport preference, official MCP token entry, debug logging, setup instructions, and upstream project credits.
+  Sidebar-based Settings UI with `Lenny source`, `Models`, `About`, and conditional `Developer` tabs, including official LennyData token setup, runtime/model selection, linked credits, and the short product-story section for this fork.
 
 ### Main character system
 - `LilAgents/Character/WalkerCharacter.swift`

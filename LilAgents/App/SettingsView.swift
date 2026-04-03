@@ -232,14 +232,40 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             SettingsHeader(
                 title: "About",
-                subtitle: "Project lineage and release notes for this fork."
+                subtitle: "Credits, project story, and links to learn more."
             )
 
-            SettingsSectionCard(title: "Credits", subtitle: "Original concept and code attribution.") {
+            SettingsSectionCard(title: "Credits", subtitle: "Original project and this fork.") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("This app is a fork of Ryan Stephen’s original lil agents project. The original concept and code remain credited under the MIT License.")
+                    Text("Lil-Lenny is built on top of the original lil agents project.")
                         .settingsCaption()
 
+                    Link("Ryan Stephen · Original lil agents project", destination: URL(string: "https://github.com/ryanstephen/lil-agents")!)
+                        .font(.subheadline.weight(.medium))
+
+                    Text("This fork is designed and developed by Ben Shih.")
+                        .settingsCaption()
+
+                    Link("Ben Shih · benshih.design", destination: URL(string: "https://benshih.design")!)
+                        .font(.subheadline.weight(.medium))
+                }
+            }
+
+            SettingsSectionCard(title: "Why I built this", subtitle: "The thinking behind Lil-Lenny.") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("I built Lil-Lenny because I wanted fast, grounded product advice to feel as lightweight and ambient as opening a desktop companion, not another heavy research workflow.")
+                        .settingsCaption()
+
+                    Text("The goal was to bring Lenny’s writing, podcast transcripts, and expert perspectives into a format that feels conversational, local-first, and easy to keep nearby while working through product, growth, pricing, leadership, and startup questions.")
+                        .settingsCaption()
+
+                    Text("It is also a small experiment in making agent workflows feel more human: multiple voices, clearer provenance, and a calmer desktop-native interface instead of a generic chat window.")
+                        .settingsCaption()
+                }
+            }
+
+            SettingsSectionCard(title: "Notes", subtitle: "Maintenance and release details for this fork.") {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Before shipping updates from this fork, publish your signed Sparkle releases to this repository and replace the public update key in `LilAgents/Info.plist` with your own.")
                         .settingsCaption()
                 }
@@ -438,7 +464,16 @@ private struct SettingsSidebarRow: View {
 
     var body: some View {
         Button(action: action) {
-            Label {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: pane.icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.10))
+                    )
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(pane.title)
                         .font(.headline)
@@ -446,17 +481,12 @@ private struct SettingsSidebarRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            } icon: {
-                Image(systemName: pane.icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.accent)
-                    .frame(width: 30, height: 30)
-                    .background(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(Color.accentColor.opacity(0.10))
-                    )
+
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 4)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
