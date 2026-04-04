@@ -8,9 +8,10 @@ extension WalkerCharacter {
 
         session.onSessionReady = { [weak self] in
             guard let self, let terminalView = self.terminalView else { return }
+            let wasRequiringSetup = terminalView.requiresInitialConnectionSetup
             terminalView.requiresInitialConnectionSetup = false
             terminalView.endStreaming()
-            if terminalView.isShowingInitialWelcomeState, self.focusedExpert == nil {
+            if terminalView.isShowingInitialWelcomeState, self.focusedExpert == nil, wasRequiringSetup {
                 terminalView.showWelcomeGreeting(forceRefresh: true)
             }
         }

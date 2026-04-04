@@ -16,6 +16,17 @@ extension WalkerCharacter {
 
         terminalView?.inputField.isEditable = false
         terminalView?.updatePlaceholder("")
+
+        // Reset transcript to a clean state on each call so repeated clicks don't accumulate content
+        if let tv = terminalView {
+            tv.currentAssistantText = ""
+            let views = tv.transcriptStack.arrangedSubviews
+            views.forEach { view in
+                tv.transcriptStack.removeArrangedSubview(view)
+                view.removeFromSuperview()
+            }
+        }
+
         let welcome = """
         Ask Lil-Lenny anything about product, growth, leadership, pricing, startups, or AI.
 

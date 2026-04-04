@@ -200,6 +200,7 @@ extension TerminalView {
         hideWelcomeSuggestionsPanel()
         isShowingInitialWelcomeState = true
         clearTranscriptStackViews()
+        currentAssistantText = ""
         let t = theme
         let greeting: String
         if requiresInitialConnectionSetup {
