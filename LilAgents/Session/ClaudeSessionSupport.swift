@@ -8,6 +8,7 @@ extension ClaudeSession {
         arguments: [String],
         environment: [String: String],
         workingDirectory: URL?,
+        stdinApprovalCount: Int = 0,
         onLineReceived: ((String) -> Void)? = nil,
         completion: @escaping (Int32, String, String) -> Void
     ) {
@@ -23,6 +24,16 @@ extension ClaudeSession {
         let stderr = Pipe()
         process.standardOutput = stdout
         process.standardError = stderr
+
+        // Pre-fill stdin with approval responses so permission prompts from
+        // non-interactive CLIs (e.g. Codex MCP tool approval) get auto-answered.
+        if stdinApprovalCount > 0 {
+            let stdin = Pipe()
+            process.standardInput = stdin
+            let responses = Data(Array(repeating: "1\n", count: stdinApprovalCount).joined().utf8)
+            stdin.fileHandleForWriting.write(responses)
+            stdin.fileHandleForWriting.closeFile()
+        }
 
         SessionDebugLogger.log(
             "process",

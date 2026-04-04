@@ -140,8 +140,6 @@ extension ClaudeSession {
         }
 
         var args = [
-            "-a",
-            "never",
             "exec",
             "--json",
             "--skip-git-repo-check",
@@ -191,6 +189,7 @@ extension ClaudeSession {
             arguments: args,
             environment: runtimeEnvironment,
             workingDirectory: preferredWorkingDirectoryURL(),
+            stdinApprovalCount: useOfficialMCP ? 20 : 0,
             onLineReceived: { [weak self] line in
                 guard let self else { return }
                 SessionDebugLogger.trace("codex-transport", line)
