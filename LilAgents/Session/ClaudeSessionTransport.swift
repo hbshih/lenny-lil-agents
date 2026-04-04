@@ -62,7 +62,7 @@ extension ClaudeSession {
 
             let sourceSummary = archiveMode == .starterPack
                 ? "Source: Starter pack"
-                : "Source: Official Lenny MCP"
+                : "Source: Official Lenny archive"
             self.onToolResult?(sourceSummary, false)
             self.appendHistory(Message(role: .toolResult, text: sourceSummary), to: conversationKey)
 
@@ -126,54 +126,52 @@ extension ClaudeSession {
                 return
             }
 
-            switch backend {
-            case let .claudeCodeCLI(path):
-                let token = self.officialMCPToken(from: environment)
-                self.callClaudeCodeCLI(
-                    executablePath: path,
+            if let token = self.officialMCPToken(from: environment) {
+                self.fetchOfficialArchiveContext(
                     message: message,
-                    attachments: attachments,
-                    environment: environment,
                     expert: activeExpert,
-                    conversationKey: conversationKey,
-                    archiveContext: nil,
-                    officialMCPToken: token,
-                    useOfficialMCP: self.backendSupportsOfficialMCP(backend, environment: environment)
-                )
+                    token: token,
+                    conversationKey: conversationKey
+                ) { [weak self] result in
+                    guard let self else { return }
+                    switch result {
+                    case .failure(let error):
+                        let normalizedError = self.normalizedLennyMCPAuthError(from: error.localizedDescription) ?? error.localizedDescription
+                        self.failTurn(normalizedError, conversationKey: conversationKey)
 
-            case let .codexCLI(path):
-                self.callCodexCLI(
-                    executablePath: path,
-                    message: message,
-                    attachments: attachments,
-                    environment: environment,
-                    expert: activeExpert,
-                    conversationKey: conversationKey,
-                    archiveContext: nil,
-                    useOfficialMCP: self.backendSupportsOfficialMCP(backend, environment: environment)
-                )
-
-            case .openAIResponsesAPI:
-                guard let key = environment["OPENAI_API_KEY"], !key.isEmpty else {
-                    SessionDebugLogger.log("turn", "official MCP path selected openai fallback but OPENAI_API_KEY missing")
-                    self.failTurn(self.backendSetupMessage(environment: environment), conversationKey: conversationKey)
-                    return
+                    case let .success(officialResult):
+                        self.pendingExperts = officialResult.experts
+                        SessionDebugLogger.log(
+                            "experts",
+                            "staged \(officialResult.experts.count) official-archive expert candidate(s) until response completion"
+                        )
+                        self.dispatchResolvedBackend(
+                            backend,
+                            message: message,
+                            attachments: attachments,
+                            environment: environment,
+                            expert: activeExpert,
+                            conversationKey: conversationKey,
+                            archiveContext: officialResult.promptContext,
+                            officialMCPToken: nil,
+                            useOfficialMCP: false
+                        )
+                    }
                 }
-                guard let token = self.officialMCPToken(from: environment) else {
-                    SessionDebugLogger.log("turn", "official MCP path selected openai fallback but no official token available")
-                    self.failTurn("Official MCP mode is enabled, but no official Lenny token is configured for direct API usage. Add your own bearer token in Settings or switch back to the starter pack.", conversationKey: conversationKey)
-                    return
-                }
-                self.callOpenAI(
-                    message: message,
-                    attachments: attachments,
-                    apiKey: key,
-                    expert: activeExpert,
-                    conversationKey: conversationKey,
-                    mcpToken: token,
-                    archiveContext: nil
-                )
+                return
             }
+
+            self.dispatchResolvedBackend(
+                backend,
+                message: message,
+                attachments: attachments,
+                environment: environment,
+                expert: activeExpert,
+                conversationKey: conversationKey,
+                archiveContext: nil,
+                officialMCPToken: self.officialMCPToken(from: environment),
+                useOfficialMCP: self.backendSupportsOfficialMCP(backend, environment: environment)
+            )
         }
     }
 
@@ -294,5 +292,60 @@ extension ClaudeSession {
         let names = experts.map(\.name).joined(separator: ", ")
         SessionDebugLogger.log("experts", "publishing \(experts.count) expert candidate(s) after response completion: \(names)")
         onExpertsUpdated?(experts)
+    }
+
+    private func dispatchResolvedBackend(
+        _ backend: Backend,
+        message: String,
+        attachments: [SessionAttachment],
+        environment: [String: String],
+        expert: ResponderExpert?,
+        conversationKey: String,
+        archiveContext: String?,
+        officialMCPToken: String?,
+        useOfficialMCP: Bool
+    ) {
+        switch backend {
+        case let .claudeCodeCLI(path):
+            self.callClaudeCodeCLI(
+                executablePath: path,
+                message: message,
+                attachments: attachments,
+                environment: environment,
+                expert: expert,
+                conversationKey: conversationKey,
+                archiveContext: archiveContext,
+                officialMCPToken: officialMCPToken,
+                useOfficialMCP: useOfficialMCP
+            )
+
+        case let .codexCLI(path):
+            self.callCodexCLI(
+                executablePath: path,
+                message: message,
+                attachments: attachments,
+                environment: environment,
+                expert: expert,
+                conversationKey: conversationKey,
+                archiveContext: archiveContext,
+                useOfficialMCP: useOfficialMCP
+            )
+
+        case .openAIResponsesAPI:
+            guard let key = environment["OPENAI_API_KEY"], !key.isEmpty else {
+                SessionDebugLogger.log("turn", "selected openai backend but OPENAI_API_KEY missing")
+                self.failTurn(self.backendSetupMessage(environment: environment), conversationKey: conversationKey)
+                return
+            }
+            self.callOpenAI(
+                message: message,
+                attachments: attachments,
+                apiKey: key,
+                expert: expert,
+                conversationKey: conversationKey,
+                mcpToken: useOfficialMCP ? officialMCPToken : nil,
+                archiveContext: archiveContext
+            )
+        }
     }
 }
