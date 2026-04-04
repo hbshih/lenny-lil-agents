@@ -12,10 +12,10 @@
 		3B4B035D86A547AC8198ECD8 /* TerminalMarkdownRenderer+Parsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6250668D17C04A23B71786AC /* TerminalMarkdownRenderer+Parsing.swift */; };
 		528CDB77E7D14B45A53268FB /* TerminalView+TranscriptSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D199B93FB44171854B772E /* TerminalView+TranscriptSuggestions.swift */; };
 		57A72875AC1342AABD881B60 /* TerminalMarkdownRenderer+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2004BEEE2C94167A8B29DB6 /* TerminalMarkdownRenderer+Formatting.swift */; };
-		7B1000010000000000000001 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 7B1000030000000000000001 /* Lottie */; };
 		7DBAF4A3C7864585A79E6EF2 /* ClaudeSessionCLIParsing+ValueExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD260B3BA9C4BCF90E35E5E /* ClaudeSessionCLIParsing+ValueExtraction.swift */; };
 		7DF970370B8446F3B824C07C /* TerminalView+SetupActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A58238166CD4823820011F5 /* TerminalView+SetupActions.swift */; };
-		929E60C42F748E3E003EA359 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 929E60C32F748E3E003EA359 /* Sparkle */; };
+		922A33A52F812E09008BF92C /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 922A33A42F812E09008BF92C /* Sparkle */; };
+		922A33A92F812F19008BF92C /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 922A33A82F812F19008BF92C /* Lottie */; };
 		9B5B7C6D4F4E4B11A1D2C3E4 /* WalkerCharacterSessionWiring+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5B7C6D4F4E4B11A1D2C3E5 /* WalkerCharacterSessionWiring+Formatting.swift */; };
 		A10000010000000000000001 /* LilAgentsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000001 /* LilAgentsApp.swift */; };
 		A10000010000000000000002 /* walk-bruce-01.mov in Resources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000002 /* walk-bruce-01.mov */; };
@@ -59,6 +59,14 @@
 		A10000010000000000000056 /* WalkerCharacterExpertTag.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000056 /* WalkerCharacterExpertTag.swift */; };
 		A10000010000000000000057 /* WalkerCharacterPopoverWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000057 /* WalkerCharacterPopoverWindow.swift */; };
 		A10000010000000000000058 /* WalkerCharacterSessionWiring.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000058 /* WalkerCharacterSessionWiring.swift */; };
+		A10000010000000000000061 /* MCPConnectionCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000061 /* MCPConnectionCards.swift */; };
+		A10000010000000000000062 /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000062 /* SettingsComponents.swift */; };
+		A10000010000000000000063 /* SettingsView+SourcePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000063 /* SettingsView+SourcePane.swift */; };
+		A10000010000000000000064 /* SettingsView+ModelsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000064 /* SettingsView+ModelsPane.swift */; };
+		A10000010000000000000065 /* ClaudeSessionCLIParsing+ToolDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000065 /* ClaudeSessionCLIParsing+ToolDisplay.swift */; };
+		A10000010000000000000066 /* HoverButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000066 /* HoverButton.swift */; };
+		A10000010000000000000067 /* TerminalView+WelcomePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000067 /* TerminalView+WelcomePanel.swift */; };
+		A10000010000000000000068 /* TerminalView+LiveStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000068 /* TerminalView+LiveStatus.swift */; };
 		A10000110000000000000001 /* CharacterSprites in Resources */ = {isa = PBXBuildFile; fileRef = A10000120000000000000001 /* CharacterSprites */; };
 		A10000110000000000000002 /* ExpertAvatars in Resources */ = {isa = PBXBuildFile; fileRef = A10000120000000000000002 /* ExpertAvatars */; };
 		A10000110000000000000003 /* fall-smoke-dust.lottie in Resources */ = {isa = PBXBuildFile; fileRef = A10000120000000000000003 /* fall-smoke-dust.lottie */; };
@@ -73,14 +81,6 @@
 		E25DDE8424DF4E209F62E6B3 /* ClaudeSessionAttachmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0815D0269047FF9812F195 /* ClaudeSessionAttachmentModels.swift */; };
 		F6C51614C7964C2EA992F899 /* ClaudeSessionCLIParsing+Structured.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98E81F03EBD48908267BBEF /* ClaudeSessionCLIParsing+Structured.swift */; };
 		F7A0C2AA9D5941F1B950A8A1 /* GuestTitles.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A0C2A99D5941F1B950A8A1 /* GuestTitles.swift */; };
-		A10000010000000000000061 /* MCPConnectionCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000061 /* MCPConnectionCards.swift */; };
-		A10000010000000000000062 /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000062 /* SettingsComponents.swift */; };
-		A10000010000000000000063 /* SettingsView+SourcePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000063 /* SettingsView+SourcePane.swift */; };
-		A10000010000000000000064 /* SettingsView+ModelsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000064 /* SettingsView+ModelsPane.swift */; };
-		A10000010000000000000065 /* ClaudeSessionCLIParsing+ToolDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000065 /* ClaudeSessionCLIParsing+ToolDisplay.swift */; };
-		A10000010000000000000066 /* HoverButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000066 /* HoverButton.swift */; };
-		A10000010000000000000067 /* TerminalView+WelcomePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000067 /* TerminalView+WelcomePanel.swift */; };
-		A10000010000000000000068 /* TerminalView+LiveStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000068 /* TerminalView+LiveStatus.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -136,6 +136,14 @@
 		A10000020000000000000056 /* WalkerCharacterExpertTag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterExpertTag.swift; sourceTree = "<group>"; };
 		A10000020000000000000057 /* WalkerCharacterPopoverWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterPopoverWindow.swift; sourceTree = "<group>"; };
 		A10000020000000000000058 /* WalkerCharacterSessionWiring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCharacterSessionWiring.swift; sourceTree = "<group>"; };
+		A10000020000000000000061 /* MCPConnectionCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPConnectionCards.swift; sourceTree = "<group>"; };
+		A10000020000000000000062 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
+		A10000020000000000000063 /* SettingsView+SourcePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView+SourcePane.swift"; sourceTree = "<group>"; };
+		A10000020000000000000064 /* SettingsView+ModelsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView+ModelsPane.swift"; sourceTree = "<group>"; };
+		A10000020000000000000065 /* ClaudeSessionCLIParsing+ToolDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeSessionCLIParsing+ToolDisplay.swift"; sourceTree = "<group>"; };
+		A10000020000000000000066 /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
+		A10000020000000000000067 /* TerminalView+WelcomePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+WelcomePanel.swift"; sourceTree = "<group>"; };
+		A10000020000000000000068 /* TerminalView+LiveStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+LiveStatus.swift"; sourceTree = "<group>"; };
 		A10000030000000000000001 /* Lenny.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Lenny.app; path = "Lil-Lenny.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000120000000000000001 /* CharacterSprites */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CharacterSprites; sourceTree = "<group>"; };
 		A10000120000000000000002 /* ExpertAvatars */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ExpertAvatars; sourceTree = "<group>"; };
@@ -147,18 +155,10 @@
 		B97C5AEED2944E54BCB1A99A /* AvatarImageUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarImageUtilities.swift; sourceTree = "<group>"; };
 		BAAA8DD4462743869A46526E /* ClaudeSessionCLIParsing+Stdout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeSessionCLIParsing+Stdout.swift"; sourceTree = "<group>"; };
 		C98E81F03EBD48908267BBEF /* ClaudeSessionCLIParsing+Structured.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeSessionCLIParsing+Structured.swift"; sourceTree = "<group>"; };
-		F7A0C2A99D5941F1B950A8A1 /* GuestTitles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestTitles.swift; sourceTree = "<group>"; };
 		E6147B37CFB04148BFA41599 /* TerminalView+TranscriptSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+TranscriptSupport.swift"; sourceTree = "<group>"; };
 		F17C00560192470995924D41 /* TerminalView+TranscriptAccessoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+TranscriptAccessoryViews.swift"; sourceTree = "<group>"; };
 		F57B574712DA4013BC6E6D5E /* TerminalView+AttachmentsParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+AttachmentsParsing.swift"; sourceTree = "<group>"; };
-		A10000020000000000000061 /* MCPConnectionCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPConnectionCards.swift; sourceTree = "<group>"; };
-		A10000020000000000000062 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
-		A10000020000000000000063 /* SettingsView+SourcePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView+SourcePane.swift"; sourceTree = "<group>"; };
-		A10000020000000000000064 /* SettingsView+ModelsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView+ModelsPane.swift"; sourceTree = "<group>"; };
-		A10000020000000000000065 /* ClaudeSessionCLIParsing+ToolDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeSessionCLIParsing+ToolDisplay.swift"; sourceTree = "<group>"; };
-		A10000020000000000000066 /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
-		A10000020000000000000067 /* TerminalView+WelcomePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+WelcomePanel.swift"; sourceTree = "<group>"; };
-		A10000020000000000000068 /* TerminalView+LiveStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalView+LiveStatus.swift"; sourceTree = "<group>"; };
+		F7A0C2A99D5941F1B950A8A1 /* GuestTitles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestTitles.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,18 +166,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7B1000010000000000000001 /* Lottie in Frameworks */,
-				929E60C42F748E3E003EA359 /* Sparkle in Frameworks */,
+				922A33A52F812E09008BF92C /* Sparkle in Frameworks */,
+				922A33A92F812F19008BF92C /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		922A33A32F812E09008BF92C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A10000050000000000000001 = {
 			isa = PBXGroup;
 			children = (
 				A10000050000000000000002 /* LilAgents */,
+				922A33A32F812E09008BF92C /* Frameworks */,
 				A10000050000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -328,8 +336,8 @@
 			);
 			name = LilAgents;
 			packageProductDependencies = (
-				7B1000030000000000000001 /* Lottie */,
-				929E60C32F748E3E003EA359 /* Sparkle */,
+				922A33A42F812E09008BF92C /* Sparkle */,
+				922A33A82F812F19008BF92C /* Lottie */,
 			);
 			productName = LilAgents;
 			productReference = A10000030000000000000001 /* Lenny.app */;
@@ -360,9 +368,9 @@
 			);
 			mainGroup = A10000050000000000000001;
 			packageReferences = (
-				7B1000020000000000000001 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				929E60C22F748E3E003EA359 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				92AFCDB12F805B6D002E07B5 /* XCRemoteSwiftPackageReference "SettingsKit-macOS" */,
+				922A33A62F812E36008BF92C /* XCRemoteSwiftPackageReference "lottie-spm" */,
 			);
 			productRefGroup = A10000050000000000000003 /* Products */;
 			projectDirPath = "";
@@ -648,12 +656,12 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7B1000020000000000000001 /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+		922A33A62F812E36008BF92C /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/airbnb/lottie-spm.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.5.2;
+				minimumVersion = 4.6.0;
 			};
 		};
 		929E60C22F748E3E003EA359 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
@@ -675,15 +683,15 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7B1000030000000000000001 /* Lottie */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7B1000020000000000000001 /* XCRemoteSwiftPackageReference "lottie-spm" */;
-			productName = Lottie;
-		};
-		929E60C32F748E3E003EA359 /* Sparkle */ = {
+		922A33A42F812E09008BF92C /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 929E60C22F748E3E003EA359 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		922A33A82F812F19008BF92C /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 922A33A62F812E36008BF92C /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

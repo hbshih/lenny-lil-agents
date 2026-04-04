@@ -148,9 +148,23 @@ extension TerminalView {
         relayoutPanels()
     }
 
-    func refreshWelcomePreviewIfNeeded() {
-        guard lastObservedWelcomePreviewMode != welcomePreviewMode else { return }
+    func firstRunConfigurationSignature() -> String {
+        [
+            "welcome:\(welcomePreviewMode.rawValue)",
+            "archive:\(AppSettings.archiveAccessMode.rawValue)",
+            "transport:\(AppSettings.preferredTransport.rawValue)",
+            "official:\(AppSettings.hasDetectedOfficialMCPConfiguration ? "1" : "0")",
+            "token:\(AppSettings.officialLennyMCPToken != nil ? "1" : "0")",
+            "openai:\(AppSettings.openAIAPIKey != nil ? "1" : "0")",
+            "setup:\(requiresInitialConnectionSetup ? "1" : "0")"
+        ].joined(separator: "|")
+    }
 
+    func refreshFirstRunStateIfNeeded(forceRefresh: Bool = false) {
+        let signature = firstRunConfigurationSignature()
+        guard forceRefresh || lastObservedFirstRunConfigurationSignature != signature else { return }
+
+        lastObservedFirstRunConfigurationSignature = signature
         starterPackWelcomeBannerDismissed = false
         currentWelcomeArchiveMode = nil
         currentWelcomeSuggestions = []
@@ -158,7 +172,17 @@ extension TerminalView {
         lastObservedWelcomePreviewMode = welcomePreviewMode
 
         guard isShowingInitialWelcomeState, !isExpertMode else { return }
+
+        if requiresInitialConnectionSetup {
+            onRefreshSetupState?()
+            return
+        }
+
         showWelcomeGreeting(forceRefresh: true)
+    }
+
+    func refreshWelcomePreviewIfNeeded() {
+        refreshFirstRunStateIfNeeded()
     }
 
     func hideWelcomeSuggestionsPanel() {

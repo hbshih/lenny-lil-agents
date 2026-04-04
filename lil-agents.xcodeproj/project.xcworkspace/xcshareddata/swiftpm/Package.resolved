@@ -1,13 +1,22 @@
 {
-  "originHash" : "e721da7f9826abdffcb6185e886155efa2514bd6234475f1afa893e29eb258d6",
+  "originHash" : "34bc63fae2de48f17bf75696663f8e54ece8baca9aa7feacf20b1ef3bc8506d4",
   "pins" : [
     {
       "identity" : "lottie-spm",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/airbnb/lottie-spm.git",
       "state" : {
-        "revision" : "04f2fd1",
-        "version" : "4.5.2"
+        "revision" : "69faaefa7721fba9e434a52c16adf4329c9084db",
+        "version" : "4.6.0"
+      }
+    },
+    {
+      "identity" : "settingskit-macos",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/david-swift/SettingsKit-macOS",
+      "state" : {
+        "revision" : "3dea00df7113e7a1e245ff58067cd8226988ec17",
+        "version" : "0.3.0"
       }
     },
     {
@@ -17,6 +26,15 @@
       "state" : {
         "revision" : "21d8df80440b1ca3b65fa82e40782f1e5a9e6ba2",
         "version" : "2.9.0"
+      }
+    },
+    {
+      "identity" : "swiftlintplugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lukepistrol/SwiftLintPlugin",
+      "state" : {
+        "revision" : "a3877065a7d72ee40e1fa64e13b9e33e846c667c",
+        "version" : "0.63.1"
       }
     }
   ],

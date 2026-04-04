@@ -135,6 +135,21 @@ extension SettingsView {
                         .pickerStyle(.radioGroup)
                         .labelsHidden()
                     }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Reset")
+                            .font(.headline)
+
+                        Text("Clear Lil-Lenny's local settings and remove its Claude/Codex LennyData MCP configuration so you can test the setup flow from a clean state.")
+                            .settingsCaption()
+
+                        Button("Reset all local data…", role: .destructive) {
+                            showResetConfirmation = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 }
             }
         }
@@ -150,12 +165,21 @@ extension SettingsView {
         if let selected = AppSettings.PreferredTransport(rawValue: preferredTransport), selected != .automatic {
             return selected
         }
-        return .openAIAPI
+        if AppSettings.hasDetectedClaudeLogin {
+            return .claudeCode
+        }
+        if AppSettings.hasDetectedCodexLogin {
+            return .codex
+        }
+        if AppSettings.hasDetectedOpenAIAPIKey {
+            return .openAIAPI
+        }
+        return .automatic
     }
 
     var modelSectionSubtitle: String {
         if isAutomaticSelected {
-            return "Automatic chooses the best available runtime on this Mac."
+            return "Automatic checks Claude first, then Codex, then OpenAI."
         }
 
         switch effectiveModelTransport {
@@ -167,7 +191,23 @@ extension SettingsView {
     }
 
     var automaticRuntimeDescription: String {
-        "Automatic picks Claude Code, Codex, or OpenAI API based on what is configured on this Mac when you send a message."
+        switch effectiveModelTransport {
+        case .claudeCode:
+            return "Automatic currently prefers Claude Code on this Mac."
+        case .codex:
+            return "Automatic currently prefers Codex on this Mac."
+        case .openAIAPI:
+            return AppSettings.hasDetectedOfficialMCPConfiguration
+                ? "Automatic would use the OpenAI API with LennyData right now."
+                : "Automatic would fall back to the OpenAI API right now."
+        case .automatic:
+            if AppSettings.hasDetectedOfficialMCPConfiguration {
+                return "LennyData is configured, but no logged-in Claude Code or Codex runtime was detected. Open Settings to check the local sign-in."
+            }
+            return AppSettings.hasDetectedOpenAIAPIKey
+                ? "Automatic would fall back to the OpenAI API right now."
+                : "Nothing is configured yet. Open Settings to connect Claude, Codex, or add an OpenAI API key."
+        }
     }
 
     var selectedRuntimeDescription: String {
