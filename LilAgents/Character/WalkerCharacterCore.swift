@@ -25,7 +25,6 @@ extension WalkerCharacter {
 
         let hostView = CharacterContentView(frame: CGRect(x: 0, y: 0, width: displayWidth, height: displayHeight))
         hostView.character = self
-        hostView.toolTip = "Ask Lil-Lenny"
         hostView.wantsLayer = true
         hostView.layer?.backgroundColor = NSColor.clear.cgColor
 
@@ -38,6 +37,7 @@ extension WalkerCharacter {
         setFacing(.front)
 
         window.contentView = hostView
+        updateCharacterTooltip()
         window.orderFrontRegardless()
     }
 
@@ -137,6 +137,7 @@ extension WalkerCharacter {
         positionProgress = position
         hideBubble()
         setPersona(.expert(expert))
+        updateCharacterTooltip()
         updateExpertNameTag()
         window.orderFrontRegardless()
     }
@@ -144,6 +145,7 @@ extension WalkerCharacter {
     func hideCompanionAvatar() {
         representedExpert = nil
         isCompanionAvatar = false
+        updateCharacterTooltip()
         hideBubble()
         hideExpertNameTag()
         window.orderOut(nil)
@@ -157,6 +159,7 @@ extension WalkerCharacter {
         } else {
             setPersona(.lenny)
         }
+        updateCharacterTooltip()
         updateExpertNameTag()
         refreshPopoverHeader()
         if !isIdleForPopover {
@@ -310,6 +313,16 @@ extension WalkerCharacter {
             terminalView.characterColor = characterColor
         }
         playHandoffEffect(from: previousPersona, to: persona)
+    }
+
+    private func updateCharacterTooltip() {
+        let tooltip: String
+        if let expert = focusedExpert ?? representedExpert {
+            tooltip = "Ask \(expert.name)"
+        } else {
+            tooltip = "Ask Lil-Lenny"
+        }
+        window.contentView?.toolTip = tooltip
     }
 
     private func loadExpertAvatar(at path: String) -> NSImage {
