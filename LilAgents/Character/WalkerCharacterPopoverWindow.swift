@@ -210,6 +210,11 @@ extension WalkerCharacter {
         terminal.onCloseRequested = { [weak self] in
             self?.closePopoverFromButton()
         }
+        terminal.onRefreshSetupState = { [weak self] in
+            guard let self, let session = self.claudeSession, !session.isRunning else { return }
+            session.focusedExpert = self.focusedExpert
+            session.start()
+        }
         terminal.setReturnToLennyVisible(false)
         container.addSubview(terminal)
 

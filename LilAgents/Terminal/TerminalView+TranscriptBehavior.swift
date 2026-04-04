@@ -214,6 +214,7 @@ extension TerminalView {
         ])
         appendBubble(text: attrText, isUser: false, speaker: TranscriptSpeaker(name: "Lil-Lenny", avatarPath: nil, kind: .lenny))
 
+        lastObservedFirstRunConfigurationSignature = firstRunConfigurationSignature()
         lastRenderedWelcomeSignature = welcomeSignature
         showWelcomeSuggestionsPanel()
         scrollToTop()

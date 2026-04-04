@@ -140,6 +140,8 @@ extension ClaudeSession {
         }
 
         var args = [
+            "-a",
+            "never",
             "exec",
             "--json",
             "--skip-git-repo-check",
@@ -153,13 +155,23 @@ extension ClaudeSession {
             args.append(contentsOf: ["-m", model])
         }
 
-        if useOfficialMCP, officialMCPToken(from: environment) != nil {
+        if useOfficialMCP, let token = officialMCPToken(from: environment) {
             args.append(contentsOf: [
                 "-c",
-                "mcp_servers.\(Constants.lennyMCPServerLabel).url=\"\(Constants.lennyMCPURL)\"",
-                "-c",
-                "mcp_servers.\(Constants.lennyMCPServerLabel).bearer_token_env_var=\"\(Constants.lennyMCPAuthEnvVar)\""
+                "mcp_servers.\(Constants.lennyMCPServerLabel).url=\"\(Constants.lennyMCPURL)\""
             ])
+
+            if AppSettings.officialLennyMCPToken != nil {
+                args.append(contentsOf: [
+                    "-c",
+                    "mcp_servers.\(Constants.lennyMCPServerLabel).http_headers.Authorization=\"Bearer \(token)\""
+                ])
+            } else {
+                args.append(contentsOf: [
+                    "-c",
+                    "mcp_servers.\(Constants.lennyMCPServerLabel).bearer_token_env_var=\"\(Constants.lennyMCPAuthEnvVar)\""
+                ])
+            }
         }
 
         args.append(prompt)

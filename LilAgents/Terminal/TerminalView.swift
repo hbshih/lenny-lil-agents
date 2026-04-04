@@ -29,6 +29,7 @@ class TerminalView: NSView {
     var onEditExpertSuggestion: ((UUID) -> Void)?
     var onTogglePinned: (() -> Void)?
     var onCloseRequested: (() -> Void)?
+    var onRefreshSetupState: (() -> Void)?
 
     var characterColor: NSColor?
     var themeOverride: PopoverTheme?
@@ -62,6 +63,7 @@ class TerminalView: NSView {
     var lastObservedWelcomePreviewMode = AppSettings.welcomePreviewMode
     var isShowingOfficialMCPSetupPanel = false
     var requiresInitialConnectionSetup = false
+    var lastObservedFirstRunConfigurationSignature: String?
     var settingsObserver: NSObjectProtocol?
     let officialMCPURL = URL(string: "https://www.lennysdata.com")!
 

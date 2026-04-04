@@ -43,6 +43,7 @@ final class ClaudeSession {
     var onExpertsUpdated: (([ResponderExpert]) -> Void)?
 
     static var shellEnvironment: [String: String]?
+    static var shellEnvironmentResolvedAt: Date?
     static var openAIKey: String?
 
     func selectedClaudeModel() -> String? {

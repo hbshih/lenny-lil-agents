@@ -50,7 +50,7 @@ extension ClaudeSession {
             SessionDebugLogger.log("turn", "resolved backend=\(String(describing: backend)) environment=\(SessionDebugLogger.summarizeEnvironment(environment))")
             guard let backend else {
                 SessionDebugLogger.log("turn", "backend resolution failed: \(messageText ?? "unknown error")")
-                self.failTurn(messageText ?? self.backendSetupMessage(environment: environment), conversationKey: conversationKey)
+                self.onSetupRequired?(messageText ?? self.backendSetupMessage(environment: environment))
                 return
             }
 

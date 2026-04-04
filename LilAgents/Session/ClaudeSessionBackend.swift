@@ -1,6 +1,8 @@
 import Foundation
 
 extension ClaudeSession {
+    private var shellEnvironmentCacheLifetime: TimeInterval { 5 }
+
     func resolveOpenAIKey(completion: @escaping (String?) -> Void) {
         resolveShellEnvironment { environment in
             completion(environment["OPENAI_API_KEY"])
@@ -8,7 +10,9 @@ extension ClaudeSession {
     }
 
     func resolveShellEnvironment(completion: @escaping ([String: String]) -> Void) {
-        if let cached = Self.shellEnvironment {
+        if let cached = Self.shellEnvironment,
+           let resolvedAt = Self.shellEnvironmentResolvedAt,
+           Date().timeIntervalSince(resolvedAt) < shellEnvironmentCacheLifetime {
             Self.openAIKey = cached["OPENAI_API_KEY"]
             SessionDebugLogger.log("env", "using cached shell environment: \(SessionDebugLogger.summarizeEnvironment(cached))")
             completion(cached)
@@ -44,7 +48,15 @@ extension ClaudeSession {
                     SessionDebugLogger.log("env", "using locally stored OPENAI_API_KEY from Settings")
                 }
 
+                if (environment[Constants.lennyMCPAuthEnvVar] ?? "").isEmpty,
+                   let storedToken = AppSettings.officialLennyMCPToken,
+                   !storedToken.isEmpty {
+                    environment[Constants.lennyMCPAuthEnvVar] = storedToken
+                    SessionDebugLogger.log("env", "using locally stored \(Constants.lennyMCPAuthEnvVar) from Settings")
+                }
+
                 Self.shellEnvironment = environment
+                Self.shellEnvironmentResolvedAt = Date()
                 Self.openAIKey = environment["OPENAI_API_KEY"]
                 SessionDebugLogger.log("env", "resolved shell environment: \(SessionDebugLogger.summarizeEnvironment(environment))")
                 completion(environment)

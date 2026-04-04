@@ -260,6 +260,15 @@ extension WalkerCharacter {
         if lowered.contains("official lenny mcp") {
             return "Connecting to the archive"
         }
+        if lowered.contains("archive lookup was cancelled") {
+            return "The archive lookup was cancelled"
+        }
+        if lowered.contains("archive connection failed to start") {
+            return "The archive connection failed to start"
+        }
+        if lowered.contains("archive token was not available") {
+            return "The archive token was not available"
+        }
         return userFacingNarration(from: trimmed)
     }
 

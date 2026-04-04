@@ -95,6 +95,7 @@ enum AppSettings {
         case claudeGlobalConfig
         case codexGlobalConfig
         case settingsToken
+        case environmentToken
 
         var label: String {
             switch self {
@@ -104,6 +105,8 @@ enum AppSettings {
                 return "Codex"
             case .settingsToken:
                 return "saved token"
+            case .environmentToken:
+                return "shell token"
             }
         }
     }
@@ -117,6 +120,9 @@ enum AppSettings {
     static let preferredCodexModelKey = "preferredCodexModel"
     static let preferredOpenAIModelKey = "preferredOpenAIModel"
     static let welcomePreviewModeKey = "welcomePreviewMode"
+    private static let shellEnvironmentMCPTokenKey = "LENNYSDATA_MCP_AUTH_TOKEN"
+
+    private static var cachedShellEnvironment: [String: String]?
 
     static var preferredTransport: PreferredTransport {
         get {
@@ -191,11 +197,14 @@ enum AppSettings {
         if claudeGlobalConfigURLs.contains(where: containsOfficialMCPConfiguration(at:)) {
             sources.append(.claudeGlobalConfig)
         }
-        if containsOfficialMCPConfiguration(at: codexGlobalConfigURL) {
+        if hasDetectedCodexOfficialMCPConfiguration {
             sources.append(.codexGlobalConfig)
         }
         if officialLennyMCPToken != nil {
             sources.append(.settingsToken)
+        }
+        if shellEnvironmentOfficialMCPToken() != nil {
+            sources.append(.environmentToken)
         }
 
         return sources
@@ -206,17 +215,73 @@ enum AppSettings {
     }
 
     static var hasDetectedCodexLogin: Bool {
-        let authURL = homeDirectoryURL.appendingPathComponent(".codex/auth.json")
-        guard FileManager.default.fileExists(atPath: authURL.path) else { return false }
-        return executableExists(named: "codex")
+        guard let executable = executablePathForDetection(named: "codex") else { return false }
+        if hasDetectedOpenAIAPIKey {
+            return true
+        }
+        let result = runCommand(executablePath: executable, arguments: ["login", "status"])
+        guard result.status == 0 else { return false }
+
+        let output = "\(result.stdout)\n\(result.stderr)".lowercased()
+        if output.contains("not logged in") || output.contains("login required") {
+            return false
+        }
+        if output.contains("logged in") || output.contains("chatgpt") {
+            return true
+        }
+
+        return output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    static var hasDetectedClaudeInstall: Bool {
-        executableExists(named: "claude")
+    static var hasDetectedClaudeLogin: Bool {
+        guard let executable = executablePathForDetection(named: "claude") else { return false }
+        if hasDetectedAnthropicAPIKey {
+            return true
+        }
+        let result = runCommand(executablePath: executable, arguments: ["auth", "status"])
+        if let data = result.stdout.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let loggedIn = json["loggedIn"] as? Bool {
+            return loggedIn
+        }
+        let output = "\(result.stdout)\n\(result.stderr)".lowercased()
+        if output.contains("not logged in") || output.contains("login required") {
+            return false
+        }
+        return result.status == 0
     }
 
-    static var hasDetectedCodexInstall: Bool {
-        executableExists(named: "codex")
+    static func refreshDetectionState() {
+        cachedShellEnvironment = nil
+    }
+
+    static var hasDetectedOpenAIAPIKey: Bool {
+        if let key = openAIAPIKey, !key.isEmpty {
+            return true
+        }
+        let envValue = resolveShellEnvironment()["OPENAI_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return envValue?.isEmpty == false
+    }
+
+    static var hasDetectedAnthropicAPIKey: Bool {
+        let envValue = resolveShellEnvironment()["ANTHROPIC_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return envValue?.isEmpty == false
+    }
+
+    static var hasDetectedCodexOfficialMCPConfiguration: Bool {
+        if containsOfficialMCPConfiguration(at: codexGlobalConfigURL) {
+            return true
+        }
+
+        guard let executable = executablePathForDetection(named: "codex") else { return false }
+        let result = runCommand(executablePath: executable, arguments: ["mcp", "list", "--json"])
+        guard result.status == 0 else { return false }
+
+        let combinedOutput = "\(result.stdout)\n\(result.stderr)".lowercased()
+        if combinedOutput.contains("\"name\":\"lennysdata\"") || combinedOutput.contains("\"lennysdata\"") {
+            return true
+        }
+        return combinedOutput.contains("lennysdata") && combinedOutput.contains(ClaudeSession.Constants.lennyMCPURL.lowercased())
     }
 
     static var debugLoggingEnabled: Bool {
@@ -271,6 +336,30 @@ enum AppSettings {
         }
     }
 
+    static func resetAllData() throws {
+        let defaults = UserDefaults.standard
+        let managedKeys = [
+            preferredTransportKey,
+            archiveAccessModeKey,
+            officialLennyMCPTokenKey,
+            openAIAPIKeyKey,
+            debugLoggingEnabledKey,
+            preferredClaudeModelKey,
+            preferredCodexModelKey,
+            preferredOpenAIModelKey,
+            welcomePreviewModeKey,
+            "hasCompletedOnboarding"
+        ]
+
+        for key in managedKeys {
+            defaults.removeObject(forKey: key)
+        }
+
+        try removeOfficialMCPConfiguration()
+        refreshDetectionState()
+        NotificationCenter.default.post(name: .lilLennyDidResetData, object: nil)
+    }
+
     private static let officialMCPMarkers = [
         "https://mcp.lennysdata.com/mcp",
         "lennysdata"
@@ -298,13 +387,116 @@ enum AppSettings {
         }
 
         let lowered = contents.lowercased()
-        return lowered.contains("lennysdata") && lowered.contains(ClaudeSession.Constants.lennyMCPURL.lowercased())
+        return officialMCPMarkers.allSatisfy { lowered.contains($0.lowercased()) }
     }
 
-    private static func executableExists(named name: String) -> Bool {
+    private static func shellEnvironmentOfficialMCPToken() -> String? {
+        let environment = resolveShellEnvironment()
+        let token = environment[shellEnvironmentMCPTokenKey]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (token?.isEmpty == false) ? token : nil
+    }
+
+    private static func removeOfficialMCPConfiguration() throws {
+        for url in claudeGlobalConfigURLs {
+            try removeClaudeOfficialMCPConfiguration(at: url)
+        }
+        try removeCodexOfficialMCPConfiguration(at: codexGlobalConfigURL)
+    }
+
+    private static func removeClaudeOfficialMCPConfiguration(at url: URL) throws {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+
+        let existingData = try Data(contentsOf: url)
+        var root = (try JSONSerialization.jsonObject(with: existingData) as? [String: Any]) ?? [:]
+        guard var mcpServers = root["mcpServers"] as? [String: Any] else { return }
+
+        mcpServers.removeValue(forKey: ClaudeSession.Constants.lennyMCPServerLabel)
+        if mcpServers.isEmpty {
+            root.removeValue(forKey: "mcpServers")
+        } else {
+            root["mcpServers"] = mcpServers
+        }
+
+        try writeJSONObject(root, to: url)
+    }
+
+    private static func removeCodexOfficialMCPConfiguration(at url: URL) throws {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+
+        let existing = try String(contentsOf: url, encoding: .utf8)
+        let normalized = existing.replacingOccurrences(of: "\r\n", with: "\n")
+        let pattern = #"(?ms)^\[mcp_servers\.lennysdata(?:\..+)?\]\n.*?(?=^\[(?!mcp_servers\.lennysdata(?:[.\]]|$)).*|\z)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return }
+
+        let range = NSRange(normalized.startIndex..<normalized.endIndex, in: normalized)
+        let cleaned = regex.stringByReplacingMatches(in: normalized, options: [], range: range, withTemplate: "")
+            .replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
+        try writeTextConfig(cleaned.hasSuffix("\n") ? cleaned : cleaned + "\n", to: url)
+    }
+
+    private static func writeJSONObject(_ object: [String: Any], to url: URL) throws {
+        if object.isEmpty {
+            try? FileManager.default.removeItem(at: url)
+            return
+        }
+
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
+        try data.write(to: url, options: [.atomic])
+    }
+
+    private static func writeTextConfig(_ contents: String, to url: URL) throws {
+        let trimmed = contents.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            try? FileManager.default.removeItem(at: url)
+            return
+        }
+
+        try contents.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    private static func resolveShellEnvironment() -> [String: String] {
+        if let cachedShellEnvironment {
+            return cachedShellEnvironment
+        }
+
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        proc.arguments = ["-l", "-i", "-c", "echo '---ENV_START---' && env && echo '---ENV_END---'"]
+        let stdout = Pipe()
+        proc.standardOutput = stdout
+        proc.standardError = Pipe()
+
+        do {
+            try proc.run()
+            proc.waitUntilExit()
+        } catch {
+            cachedShellEnvironment = [:]
+            return [:]
+        }
+
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+        var environment: [String: String] = [:]
+
+        if let startRange = output.range(of: "---ENV_START---\n"),
+           let endRange = output.range(of: "\n---ENV_END---") {
+            let envString = String(output[startRange.upperBound..<endRange.lowerBound])
+            for line in envString.components(separatedBy: "\n") {
+                guard let eqRange = line.range(of: "=") else { continue }
+                let key = String(line[..<eqRange.lowerBound])
+                let value = String(line[eqRange.upperBound...])
+                environment[key] = value
+            }
+        }
+
+        cachedShellEnvironment = environment
+        return environment
+    }
+
+    private static func executablePathForDetection(named name: String) -> String? {
         if let rawPath = ProcessInfo.processInfo.environment["PATH"],
-           executablePathForDetection(named: name, rawPath: rawPath) != nil {
-            return true
+           let path = executablePathForDetection(named: name, rawPath: rawPath) {
+            return path
         }
 
         let fallbackPaths: [String]
@@ -327,8 +519,11 @@ enum AppSettings {
             fallbackPaths = []
         }
 
-        return fallbackPaths.contains { FileManager.default.isExecutableFile(atPath: $0) }
-            || executablePathFromLoginShellForDetection(named: name) != nil
+        if let path = fallbackPaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
+            return path
+        }
+
+        return executablePathFromLoginShellForDetection(named: name)
     }
 
     private static func executablePathForDetection(named name: String, rawPath: String) -> String? {
@@ -361,6 +556,27 @@ enum AppSettings {
         let output = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return (output?.isEmpty == false) ? output : nil
+    }
+
+    private static func runCommand(executablePath: String, arguments: [String]) -> (status: Int32, stdout: String, stderr: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executablePath)
+        process.arguments = arguments
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return (-1, "", error.localizedDescription)
+        }
+
+        let out = String(data: stdout.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        let err = String(data: stderr.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        return (process.terminationStatus, out, err)
     }
 }
 
@@ -427,12 +643,8 @@ enum OfficialMCPInstaller {
         }
 
         if availableTargets.contains(.codex) {
-            if AppSettings.containsOfficialMCPConfiguration(at: AppSettings.codexGlobalConfigURL) {
-                preservedTargets.append(.codex)
-            } else {
-                try installCodexConfig()
-                updatedTargets.append(.codex)
-            }
+            try installCodexConfig(token: trimmed)
+            updatedTargets.append(.codex)
         }
 
         let result = InstallResult(
@@ -499,7 +711,7 @@ enum OfficialMCPInstaller {
         return hint
     }
 
-    private static func installCodexConfig() throws {
+    private static func installCodexConfig(token: String) throws {
         let configURL = AppSettings.codexGlobalConfigURL
         let configDirectory = configURL.deletingLastPathComponent()
         do {
@@ -509,7 +721,7 @@ enum OfficialMCPInstaller {
         }
 
         let existing = (try? String(contentsOf: configURL, encoding: .utf8)) ?? ""
-        let updated = mergedCodexConfig(existing)
+        let updated = mergedCodexConfig(existing, token: token)
         do {
             try updated.write(to: configURL, atomically: true, encoding: .utf8)
         } catch {
@@ -547,15 +759,16 @@ enum OfficialMCPInstaller {
         }
     }
 
-    private static func mergedCodexConfig(_ existing: String) -> String {
+    private static func mergedCodexConfig(_ existing: String, token: String) -> String {
         let desiredBlock = """
         [mcp_servers.\(serverLabel)]
         url = "\(mcpURL)"
-        bearer_token_env_var = "\(tokenEnvVar)"
+        [mcp_servers.\(serverLabel).http_headers]
+        Authorization = "Bearer \(token)"
         """
 
         let normalized = existing.replacingOccurrences(of: "\r\n", with: "\n")
-        let pattern = #"(?ms)^\[mcp_servers\.lennysdata\]\n.*?(?=^\[|\z)"#
+        let pattern = #"(?ms)^\[mcp_servers\.lennysdata(?:\..+)?\]\n.*?(?=^\[(?!mcp_servers\.lennysdata(?:[.\]]|$)).*|\z)"#
 
         if let regex = try? NSRegularExpression(pattern: pattern) {
             let range = NSRange(normalized.startIndex..<normalized.endIndex, in: normalized)
@@ -742,4 +955,8 @@ private extension OfficialMCPInstaller.InstallTarget {
             ]
         }
     }
+}
+
+extension Notification.Name {
+    static let lilLennyDidResetData = Notification.Name("LilLennyDidResetData")
 }

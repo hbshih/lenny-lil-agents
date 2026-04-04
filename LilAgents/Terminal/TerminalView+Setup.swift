@@ -234,10 +234,11 @@ extension TerminalView {
             object: UserDefaults.standard,
             queue: .main
         ) { [weak self] _ in
-            self?.refreshWelcomePreviewIfNeeded()
+            self?.refreshFirstRunStateIfNeeded()
         }
         refreshComposerContentLayout()
         relayoutPanels()
+        lastObservedFirstRunConfigurationSignature = firstRunConfigurationSignature()
     }
 
     func refreshComposerContentLayout(showingStatus: Bool? = nil) {

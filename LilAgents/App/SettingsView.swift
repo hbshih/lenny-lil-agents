@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 private enum SettingsPane: String, CaseIterable, Identifiable {
@@ -49,6 +50,8 @@ struct SettingsView: View {
     @AppStorage(AppSettings.welcomePreviewModeKey) private var welcomePreviewMode = AppSettings.WelcomePreviewMode.live.rawValue
 
     @State private var selectedPane: SettingsPane = .source
+    @State private var showResetConfirmation = false
+    @State private var resetErrorMessage: String?
 
     private let officialArchiveURL = URL(string: "https://www.lennysdata.com")!
 
@@ -78,6 +81,12 @@ struct SettingsView: View {
         .toolbar(removing: .sidebarToggle)
         .frame(minWidth: 840, idealWidth: 920, minHeight: 620, idealHeight: 700)
         .onAppear {
+            AppSettings.refreshDetectionState()
+            guard !AppSettings.hasStoredArchiveAccessModePreference else { return }
+            archiveAccessMode = AppSettings.defaultArchiveAccessMode.rawValue
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            AppSettings.refreshDetectionState()
             guard !AppSettings.hasStoredArchiveAccessModePreference else { return }
             archiveAccessMode = AppSettings.defaultArchiveAccessMode.rawValue
         }
@@ -85,6 +94,26 @@ struct SettingsView: View {
             if !enabled && selectedPane == .developer {
                 selectedPane = .source
             }
+        }
+        .alert("Reset Lil-Lenny data?", isPresented: $showResetConfirmation) {
+            Button("Reset All Data", role: .destructive) {
+                do {
+                    try AppSettings.resetAllData()
+                } catch {
+                    resetErrorMessage = error.localizedDescription
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This clears Lil-Lenny’s saved token, API keys, model/runtime settings, onboarding state, and removes the `lennysdata` MCP config it wrote for Claude and Codex.")
+        }
+        .alert("Reset Failed", isPresented: Binding(
+            get: { resetErrorMessage != nil },
+            set: { if !$0 { resetErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(resetErrorMessage ?? "")
         }
     }
 
@@ -145,7 +174,7 @@ struct SettingsView: View {
                             SettingsInfoRow(
                                 icon: "checkmark.circle.fill",
                                 iconColor: .accentColor,
-                                text: "MCP has already been configured locally through \(detectedOfficialSourceLabel)."
+                                text: detectedOfficialSourceStatusText
                             )
                         } else {
                             HStack(alignment: .center, spacing: 12) {
@@ -306,6 +335,21 @@ struct SettingsView: View {
                         .pickerStyle(.radioGroup)
                         .labelsHidden()
                     }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Reset")
+                            .font(.headline)
+
+                        Text("Clear Lil-Lenny’s local settings and remove its Claude/Codex LennyData MCP configuration so you can test the setup flow from a clean state.")
+                            .settingsCaption()
+
+                        Button("Reset all local data…", role: .destructive) {
+                            showResetConfirmation = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 }
             }
         }
@@ -375,27 +419,21 @@ struct SettingsView: View {
             return selected
         }
 
-        if AppSettings.hasDetectedClaudeInstall && AppSettings.detectedOfficialMCPSources.contains(.claudeGlobalConfig) {
+        if AppSettings.hasDetectedClaudeLogin {
             return .claudeCode
         }
         if AppSettings.hasDetectedCodexLogin {
             return .codex
         }
-        if AppSettings.detectedOfficialMCPSources.contains(.claudeGlobalConfig) {
-            return .claudeCode
-        }
-        if AppSettings.detectedOfficialMCPSources.contains(.codexGlobalConfig) {
-            return .codex
-        }
-        if !openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || AppSettings.openAIAPIKey != nil {
+        if AppSettings.hasDetectedOpenAIAPIKey {
             return .openAIAPI
         }
-        return .openAIAPI
+        return .automatic
     }
 
     private var modelSectionSubtitle: String {
         if isAutomaticSelected {
-            return "Automatic chooses the best available runtime on this Mac."
+            return "Automatic checks Claude first, then Codex, then OpenAI."
         }
 
         switch effectiveModelTransport {
@@ -417,15 +455,35 @@ struct SettingsView: View {
         case .codex:
             return "Automatic currently prefers Codex on this Mac."
         case .openAIAPI:
-            if AppSettings.hasDetectedCodexInstall {
-                return "Codex is installed, but Lil-Lenny could not confirm a current login from Settings. If Codex is already logged in, reopening the app should refresh detection."
-            }
-            return (AppSettings.openAIAPIKey ?? openAIAPIKey).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? "Nothing else is configured yet, so add an OpenAI API key below if you want a direct API fallback."
+            return AppSettings.hasDetectedOfficialMCPConfiguration
+                ? "Automatic would use the OpenAI API with LennyData right now."
                 : "Automatic would fall back to the OpenAI API right now."
         case .automatic:
-            return "Automatic chooses the best available runtime on this Mac."
+            if AppSettings.hasDetectedOfficialMCPConfiguration {
+                return "LennyData is configured, but no logged-in Claude Code or Codex runtime was detected. Open Settings to check the local sign-in."
+            }
+            return AppSettings.hasDetectedOpenAIAPIKey
+                ? "Automatic would fall back to the OpenAI API right now."
+                : "Nothing is configured yet. Open Settings to connect Claude, Codex, or add an OpenAI API key."
         }
+    }
+
+    private var detectedOfficialSourceStatusText: String {
+        let sources = AppSettings.detectedOfficialMCPSources
+
+        if sources == [.settingsToken] {
+            return "A LennyData token is saved on this Mac. Lil-Lenny will verify it the next time you ask a question."
+        }
+
+        if sources == [.environmentToken] {
+            return "LennyData is configured through the shell environment on this Mac."
+        }
+
+        if sources.allSatisfy({ $0 == .settingsToken || $0 == .environmentToken }) {
+            return "LennyData tokens are configured on this Mac. Lil-Lenny will verify them the next time you ask a question."
+        }
+
+        return "MCP has already been configured locally through \(detectedOfficialSourceLabel)."
     }
 
     private var selectedRuntimeDescription: String {

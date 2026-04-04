@@ -34,6 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         controller = LilAgentsController()
+        NotificationCenter.default.addObserver(self, selector: #selector(handleResetAllData), name: .lilLennyDidResetData, object: nil)
         controller?.onExpertsChanged = { [weak self] experts in
             self?.updateExpertStatusItems(experts)
         }
@@ -46,6 +47,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegat
 
     func applicationWillTerminate(_ notification: Notification) {
         controller?.characters.forEach { $0.claudeSession?.terminate() }
+    }
+
+    @objc private func handleResetAllData() {
+        controller?.returnToGenie()
+        controller?.clearDebugExpertSuggestions()
+
+        controller?.characters.forEach { character in
+            character.claudeSession?.terminate()
+            character.claudeSession = nil
+            character.terminalView?.endStreaming()
+            character.terminalView?.clearLiveStatus()
+            character.terminalView?.hideExpertSuggestions()
+            character.terminalView?.requiresInitialConnectionSetup = false
+            if character.isIdleForPopover {
+                character.terminalView?.showWelcomeGreeting(forceRefresh: true)
+            }
+        }
     }
 
     // MARK: - Menu Bar

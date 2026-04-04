@@ -5,6 +5,7 @@ extension WalkerCharacter {
         session.onSessionReady = { [weak self] in
             guard let self, let terminalView = self.terminalView else { return }
             terminalView.requiresInitialConnectionSetup = false
+            terminalView.endStreaming()
             if terminalView.isShowingInitialWelcomeState, self.focusedExpert == nil {
                 terminalView.showWelcomeGreeting(forceRefresh: true)
             }
@@ -13,10 +14,16 @@ extension WalkerCharacter {
         session.onSetupRequired = { [weak self] _ in
             self?.stopLiveStatusFallback()
             self?.setCurrentActivityStatus("")
-            self?.terminalView?.clearLiveStatus()
-            self?.terminalView?.requiresInitialConnectionSetup = true
-            if self?.focusedExpert == nil {
-                self?.terminalView?.showWelcomeGreeting(forceRefresh: true)
+            self?.claudeSession?.isBusy = false
+            self?.claudeSession?.pendingExperts.removeAll()
+            self?.claudeSession?.assistantExplicitlyRequestedExperts = false
+            if let terminalView = self?.terminalView {
+                terminalView.endStreaming()
+                terminalView.clearLiveStatus()
+                terminalView.requiresInitialConnectionSetup = true
+                if self?.focusedExpert == nil {
+                    terminalView.showWelcomeGreeting(forceRefresh: true)
+                }
             }
             self?.updateExpertNameTag()
         }
@@ -61,7 +68,8 @@ extension WalkerCharacter {
         session.onError = { [weak self] text in
             self?.stopLiveStatusFallback()
             self?.setCurrentActivityStatus("")
-            self?.terminalView?.setLiveStatus(text, isBusy: false, isError: true)
+            self?.terminalView?.endStreaming()
+            self?.terminalView?.clearLiveStatus()
             self?.terminalView?.appendError(text)
             self?.updateExpertNameTag()
         }
