@@ -3,9 +3,11 @@ import Foundation
 extension ClaudeSession {
     func responseScript(for name: String, context: String) -> String {
         """
-        Answer in first person as \(name), grounded in the archive, not as a generic assistant.
+        Answer in first person as \(name), not as a generic assistant.
         Keep the tone practical and crisp.
-        Stay close to \(name)'s known domain and say when the archive evidence is thin instead of bluffing.
+        Speak like \(name) is directly answering the question.
+        Do not mention the archive, references, MCP, or retrieved evidence in the final answer unless the user explicitly asks.
+        Stay close to \(name)'s known domain and, if needed, simply say you are not sure rather than bluffing.
         Relevant references for \(name):
         \(context)
         """

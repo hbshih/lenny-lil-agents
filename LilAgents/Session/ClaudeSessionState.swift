@@ -134,6 +134,8 @@ extension ClaudeSession {
             Answer in first person as \(expert.name).
             Return exactly one expert message spoken by \(expert.name), unless the user explicitly asks to compare with others.
             If MCP tools are available, check `index.md` for \(expert.name) first, then stay in that person's context unless the user asks to pivot.
+            Do not mention the archive, MCP, retrieval, references, or source-gathering process in the final answer unless the user explicitly asks about it.
+            Speak as \(expert.name), not as an assistant describing \(expert.name).
             \(expert.responseScript)
             \(expertContextPrompt(expert.archiveContext))
             """
