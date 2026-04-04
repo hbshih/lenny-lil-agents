@@ -221,6 +221,81 @@ class WelcomeChipsView: NSView {
     }
 }
 
+class ConnectionSetupCardView: NSView {
+    var onOpenSettings: (() -> Void)?
+
+    private let theme: PopoverTheme
+
+    init(theme: PopoverTheme) {
+        self.theme = theme
+        super.init(frame: .zero)
+        setupViews()
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setupViews() {
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.backgroundColor = theme.inputBg.cgColor
+        layer?.cornerRadius = 12
+        layer?.borderWidth = 1
+        layer?.borderColor = theme.separatorColor.withAlphaComponent(0.45).cgColor
+
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 12),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12)
+        ])
+
+        let title = NSTextField(wrappingLabelWithString: "Set up your AI connection")
+        title.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        title.textColor = theme.textPrimary
+        title.maximumNumberOfLines = 0
+        stack.addArrangedSubview(title)
+        title.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+
+        let body = NSTextField(wrappingLabelWithString: "Open Settings to connect Claude, Codex/ChatGPT, or OpenAI. Once one is connected, Lil-Lenny is ready to chat.")
+        body.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        body.textColor = theme.textDim
+        body.maximumNumberOfLines = 0
+        stack.addArrangedSubview(body)
+        body.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+
+        let settingsButton = HoverButton(title: "", target: self, action: #selector(openSettingsTapped))
+        settingsButton.isBordered = false
+        settingsButton.wantsLayer = true
+        settingsButton.normalBg = theme.accentColor.cgColor
+        settingsButton.hoverBg = theme.accentColor.withAlphaComponent(0.82).cgColor
+        settingsButton.layer?.backgroundColor = settingsButton.normalBg
+        settingsButton.layer?.cornerRadius = 12
+        settingsButton.horizontalContentPadding = 16
+        settingsButton.verticalContentPadding = 6
+        settingsButton.attributedTitle = NSAttributedString(string: "Open Settings", attributes: [
+            .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+            .foregroundColor: NSColor.white
+        ])
+        settingsButton.translatesAutoresizingMaskIntoConstraints = false
+        settingsButton.heightAnchor.constraint(equalToConstant: 34).isActive = true
+        stack.addArrangedSubview(settingsButton)
+
+        setContentHuggingPriority(.required, for: .vertical)
+        setContentCompressionResistancePriority(.required, for: .vertical)
+    }
+
+    @objc private func openSettingsTapped() {
+        onOpenSettings?()
+    }
+}
+
 class StarterPackUpsellCardView: NSView {
     var onConnectTapped: (() -> Void)?
     var onSettingsTapped: (() -> Void)?

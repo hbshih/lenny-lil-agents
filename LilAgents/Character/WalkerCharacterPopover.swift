@@ -66,16 +66,19 @@ extension WalkerCharacter {
         showingCompletion = false
         hideBubble()
 
+        if popoverWindow == nil {
+            createPopoverWindow()
+        }
+
         if claudeSession == nil {
             let session = ClaudeSession()
             session.focusedExpert = focusedExpert
             claudeSession = session
             wireSession(session)
             session.start()
-        }
-
-        if popoverWindow == nil {
-            createPopoverWindow()
+        } else if claudeSession?.isRunning != true {
+            claudeSession?.focusedExpert = focusedExpert
+            claudeSession?.start()
         }
 
         refreshPopoverHeader()

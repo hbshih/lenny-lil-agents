@@ -89,6 +89,8 @@ extension TerminalView {
     }
 
     var shouldShowStarterPackUpsell: Bool {
+        guard !requiresInitialConnectionSetup else { return false }
+
         switch welcomePreviewMode {
         case .live:
             return AppSettings.effectiveArchiveAccessMode == .starterPack && !AppSettings.hasDetectedOfficialMCPConfiguration
@@ -161,6 +163,21 @@ extension TerminalView {
 
         if isShowingOfficialMCPSetupPanel {
             showOfficialMCPSetupPanel()
+            return
+        }
+
+        if requiresInitialConnectionSetup {
+            let setupCard = ConnectionSetupCardView(theme: theme)
+            setupCard.onOpenSettings = { [weak self] in
+                self?.openAppSettings()
+            }
+            expertSuggestionLabel.isHidden = true
+            expertSuggestionStack.addArrangedSubview(setupCard)
+            setupCard.widthAnchor.constraint(equalTo: expertSuggestionStack.widthAnchor).isActive = true
+            welcomeChipsView = nil
+            expertSuggestionContainer.isHidden = false
+            expertSuggestionContainer.alphaValue = 1
+            relayoutPanels()
             return
         }
 

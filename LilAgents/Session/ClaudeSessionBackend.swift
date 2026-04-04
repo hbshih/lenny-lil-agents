@@ -257,9 +257,8 @@ extension ClaudeSession {
             arguments: ["login", "status"],
             environment: environment,
             workingDirectory: nil
-        ) { status, stdout, _ in
-            let normalized = stdout.lowercased()
-            let isLoggedIn = status == 0 && (normalized.contains("logged in") || normalized.contains("chatgpt"))
+        ) { status, stdout, stderr in
+            let isLoggedIn = self.isCodexAuthenticated(exitCode: status, stdout: stdout, stderr: stderr)
             SessionDebugLogger.log("backend", "codex login status exitCode=\(status) authenticated=\(isLoggedIn)")
             completion(isLoggedIn ? .codexCLI(path: executable) : nil)
         }
@@ -283,6 +282,20 @@ extension ClaudeSession {
             return loggedIn
         }
         return exitCode == 0
+    }
+
+    func isCodexAuthenticated(exitCode: Int32, stdout: String, stderr: String) -> Bool {
+        guard exitCode == 0 else { return false }
+
+        let normalized = "\(stdout)\n\(stderr)".lowercased()
+        if normalized.contains("not logged in") || normalized.contains("login required") {
+            return false
+        }
+        if normalized.contains("logged in") || normalized.contains("chatgpt") {
+            return true
+        }
+
+        return normalized.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func officialMCPToken(from environment: [String: String]) -> String? {
@@ -349,17 +362,14 @@ extension ClaudeSession {
         let hasCustomMCPKey = !(environment[Constants.lennyMCPAuthEnvVar] ?? "").isEmpty
 
         var lines = [
-            "No default AI transport is configured yet.",
+            "Lenny is not connected yet.",
             "",
-            "Current transport preference: `\(AppSettings.preferredTransport.rawValue)`",
+            "Open Settings to connect one of these:",
+            "1. Claude Code",
+            "2. Codex / ChatGPT",
+            "3. OpenAI API",
             "",
-            "Supported transports:",
-            "1. Claude Code CLI with `ANTHROPIC_API_KEY` or Claude login",
-            "2. Codex CLI with ChatGPT login or `OPENAI_API_KEY`",
-            "3. Direct OpenAI API with `OPENAI_API_KEY`",
-            "",
-            "Free mode uses the bundled starter archive locally.",
-            "Official MCP mode requires a global Lenny MCP install in Claude Code or Codex, or your own token via `\(Constants.lennyMCPAuthEnvVar)`."
+            "Free mode works with the bundled Starter Pack after you connect a provider."
         ]
 
         if hasAnthropicKey || hasOpenAIKey || hasCustomMCPKey {

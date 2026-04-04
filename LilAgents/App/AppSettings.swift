@@ -130,12 +130,16 @@ enum AppSettings {
 
     static var archiveAccessMode: ArchiveAccessMode {
         get {
-            let rawValue = UserDefaults.standard.string(forKey: archiveAccessModeKey) ?? ArchiveAccessMode.officialMCP.rawValue
+            let rawValue = UserDefaults.standard.string(forKey: archiveAccessModeKey) ?? defaultArchiveAccessMode.rawValue
             return ArchiveAccessMode(rawValue: rawValue) ?? .starterPack
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: archiveAccessModeKey)
         }
+    }
+
+    static var hasStoredArchiveAccessModePreference: Bool {
+        UserDefaults.standard.object(forKey: archiveAccessModeKey) != nil
     }
 
     static var officialLennyMCPToken: String? {
@@ -177,6 +181,10 @@ enum AppSettings {
         return detectedOfficialMCPSources.isEmpty ? .starterPack : .officialMCP
     }
 
+    static var defaultArchiveAccessMode: ArchiveAccessMode {
+        detectedOfficialMCPSources.isEmpty ? .starterPack : .officialMCP
+    }
+
     static var detectedOfficialMCPSources: [OfficialMCPSource] {
         var sources: [OfficialMCPSource] = []
 
@@ -195,6 +203,20 @@ enum AppSettings {
 
     static var hasDetectedOfficialMCPConfiguration: Bool {
         !detectedOfficialMCPSources.isEmpty
+    }
+
+    static var hasDetectedCodexLogin: Bool {
+        let authURL = homeDirectoryURL.appendingPathComponent(".codex/auth.json")
+        guard FileManager.default.fileExists(atPath: authURL.path) else { return false }
+        return executableExists(named: "codex")
+    }
+
+    static var hasDetectedClaudeInstall: Bool {
+        executableExists(named: "claude")
+    }
+
+    static var hasDetectedCodexInstall: Bool {
+        executableExists(named: "codex")
     }
 
     static var debugLoggingEnabled: Bool {
@@ -277,6 +299,68 @@ enum AppSettings {
 
         let lowered = contents.lowercased()
         return lowered.contains("lennysdata") && lowered.contains(ClaudeSession.Constants.lennyMCPURL.lowercased())
+    }
+
+    private static func executableExists(named name: String) -> Bool {
+        if let rawPath = ProcessInfo.processInfo.environment["PATH"],
+           executablePathForDetection(named: name, rawPath: rawPath) != nil {
+            return true
+        }
+
+        let fallbackPaths: [String]
+        let home = homeDirectoryURL.path
+        switch name {
+        case "claude":
+            fallbackPaths = [
+                "\(home)/.local/bin/claude",
+                "/opt/homebrew/bin/claude",
+                "/usr/local/bin/claude"
+            ]
+        case "codex":
+            fallbackPaths = [
+                "\(home)/.local/bin/codex",
+                "\(home)/.nvm/versions/node/current/bin/codex",
+                "/opt/homebrew/bin/codex",
+                "/usr/local/bin/codex"
+            ]
+        default:
+            fallbackPaths = []
+        }
+
+        return fallbackPaths.contains { FileManager.default.isExecutableFile(atPath: $0) }
+            || executablePathFromLoginShellForDetection(named: name) != nil
+    }
+
+    private static func executablePathForDetection(named name: String, rawPath: String) -> String? {
+        for directory in rawPath.split(separator: ":") {
+            let candidate = URL(fileURLWithPath: String(directory)).appendingPathComponent(name).path
+            if FileManager.default.isExecutableFile(atPath: candidate) {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    private static func executablePathFromLoginShellForDetection(named name: String) -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = ["-l", "-c", "command -v \(name)"]
+        let stdout = Pipe()
+        process.standardOutput = stdout
+        process.standardError = Pipe()
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return nil
+        }
+
+        guard process.terminationStatus == 0 else { return nil }
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (output?.isEmpty == false) ? output : nil
     }
 }
 

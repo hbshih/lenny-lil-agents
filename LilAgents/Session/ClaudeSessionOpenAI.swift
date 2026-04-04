@@ -101,7 +101,11 @@ extension ClaudeSession {
         if let error = json["error"] as? [String: Any],
            let message = error["message"] as? String {
             SessionDebugLogger.log("openai", "model returned error: \(message)")
-            failTurn("OpenAI error: \(message)", conversationKey: conversationKey)
+            if let authError = normalizedLennyMCPAuthError(from: message) {
+                failTurn(authError, conversationKey: conversationKey)
+            } else {
+                failTurn("OpenAI error: \(message)", conversationKey: conversationKey)
+            }
             return
         }
 

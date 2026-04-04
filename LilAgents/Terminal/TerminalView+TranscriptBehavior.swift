@@ -177,7 +177,12 @@ extension TerminalView {
     func showWelcomeGreeting(forceRefresh: Bool = false) {
         ensureWelcomeSuggestionSelection(forceRefresh: forceRefresh || !isShowingInitialWelcomeState)
         let archiveMode = currentWelcomeArchiveMode ?? welcomePreviewArchiveMode
-        let welcomeSignature = "\(archiveMode.rawValue)|\(shouldPresentStarterPackWelcomeBanner ? "banner" : "chips")"
+        let welcomeSignature: String
+        if requiresInitialConnectionSetup {
+            welcomeSignature = "setup-required"
+        } else {
+            welcomeSignature = "\(archiveMode.rawValue)|\(shouldPresentStarterPackWelcomeBanner ? "banner" : "chips")"
+        }
 
         if !forceRefresh,
            isShowingInitialWelcomeState,
@@ -196,7 +201,9 @@ extension TerminalView {
         clearTranscriptStackViews()
         let t = theme
         let greeting: String
-        if archiveMode == .starterPack {
+        if requiresInitialConnectionSetup {
+            greeting = "Hi, I'm Lil-Lenny. Open Settings to connect Claude, ChatGPT, or OpenAI, then come back here and ask me anything."
+        } else if archiveMode == .starterPack {
             greeting = "Hi, I'm Lil-Lenny. Ask me about product, growth, leadership, pricing, startups, or AI. I'll help you think it through with the Starter Pack on this Mac."
         } else {
             greeting = "Hi, I'm Lil-Lenny. Ask me about product, growth, leadership, pricing, startups, or AI. I draw from LennyData."

@@ -1,6 +1,31 @@
 import Foundation
 
 extension ClaudeSession {
+    func normalizedLennyMCPAuthError(from text: String) -> String? {
+        let normalized = text.lowercased()
+        let mentionsLennyMCP =
+            normalized.contains("lennysdata") ||
+            normalized.contains("mcp.lennysdata.com") ||
+            normalized.contains("lenny mcp") ||
+            normalized.contains("lennydata mcp")
+
+        let looksLikeAuthFailure =
+            normalized.contains("401") ||
+            normalized.contains("403") ||
+            normalized.contains("unauthorized") ||
+            normalized.contains("forbidden") ||
+            normalized.contains("invalid token") ||
+            normalized.contains("token expired") ||
+            normalized.contains("expired token") ||
+            normalized.contains("authentication failed") ||
+            normalized.contains("invalid bearer") ||
+            normalized.contains("bearer token")
+
+        guard mentionsLennyMCP && looksLikeAuthFailure else { return nil }
+
+        return "Your LennyData token looks invalid or expired. Open Settings and add a new token, or switch back to Starter Pack."
+    }
+
     func extractStructuredJSONStringValue(forKey key: String, from outputText: String) -> String? {
         guard let candidate = extractStructuredJSONCandidate(from: outputText) else { return nil }
 
@@ -76,6 +101,13 @@ extension ClaudeSession {
     func normalizeCLIError(stdout: String, stderr: String, fallback: String) -> String {
         let stderrTrimmed = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
         let stdoutTrimmed = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        let combined = [stderrTrimmed, stdoutTrimmed]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+
+        if let authError = normalizedLennyMCPAuthError(from: combined) {
+            return authError
+        }
 
         let candidate: String
         if !stderrTrimmed.isEmpty {

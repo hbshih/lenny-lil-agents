@@ -2,6 +2,25 @@ import AppKit
 
 extension WalkerCharacter {
     func wireSession(_ session: ClaudeSession) {
+        session.onSessionReady = { [weak self] in
+            guard let self, let terminalView = self.terminalView else { return }
+            terminalView.requiresInitialConnectionSetup = false
+            if terminalView.isShowingInitialWelcomeState, self.focusedExpert == nil {
+                terminalView.showWelcomeGreeting(forceRefresh: true)
+            }
+        }
+
+        session.onSetupRequired = { [weak self] _ in
+            self?.stopLiveStatusFallback()
+            self?.setCurrentActivityStatus("")
+            self?.terminalView?.clearLiveStatus()
+            self?.terminalView?.requiresInitialConnectionSetup = true
+            if self?.focusedExpert == nil {
+                self?.terminalView?.showWelcomeGreeting(forceRefresh: true)
+            }
+            self?.updateExpertNameTag()
+        }
+
         session.onText = { [weak self] text in
             guard let self, let tv = self.terminalView else { return }
             tv.currentAssistantText = text

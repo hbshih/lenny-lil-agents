@@ -19,8 +19,7 @@ extension ClaudeSession {
             guard let backend else {
                 let msg = message ?? self.backendSetupMessage(environment: environment)
                 SessionDebugLogger.log("session", "start() failed: \(msg)")
-                self.onError?(msg)
-                self.appendHistory(Message(role: .error, text: msg), to: self.key(for: self.focusedExpert))
+                self.onSetupRequired?(msg)
                 return
             }
 

@@ -39,7 +39,7 @@ private enum SettingsPane: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @AppStorage(AppSettings.preferredTransportKey) private var preferredTransport = AppSettings.PreferredTransport.automatic.rawValue
-    @AppStorage(AppSettings.archiveAccessModeKey) private var archiveAccessMode = AppSettings.ArchiveAccessMode.officialMCP.rawValue
+    @AppStorage(AppSettings.archiveAccessModeKey) private var archiveAccessMode = AppSettings.ArchiveAccessMode.starterPack.rawValue
     @AppStorage(AppSettings.officialLennyMCPTokenKey) private var officialToken = ""
     @AppStorage(AppSettings.openAIAPIKeyKey) private var openAIAPIKey = ""
     @AppStorage(AppSettings.debugLoggingEnabledKey) private var debugLoggingEnabled = true
@@ -77,6 +77,10 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .toolbar(removing: .sidebarToggle)
         .frame(minWidth: 840, idealWidth: 920, minHeight: 620, idealHeight: 700)
+        .onAppear {
+            guard !AppSettings.hasStoredArchiveAccessModePreference else { return }
+            archiveAccessMode = AppSettings.defaultArchiveAccessMode.rawValue
+        }
         .onChange(of: debugLoggingEnabled) { _, enabled in
             if !enabled && selectedPane == .developer {
                 selectedPane = .source
@@ -371,6 +375,12 @@ struct SettingsView: View {
             return selected
         }
 
+        if AppSettings.hasDetectedClaudeInstall && AppSettings.detectedOfficialMCPSources.contains(.claudeGlobalConfig) {
+            return .claudeCode
+        }
+        if AppSettings.hasDetectedCodexLogin {
+            return .codex
+        }
         if AppSettings.detectedOfficialMCPSources.contains(.claudeGlobalConfig) {
             return .claudeCode
         }
@@ -407,6 +417,9 @@ struct SettingsView: View {
         case .codex:
             return "Automatic currently prefers Codex on this Mac."
         case .openAIAPI:
+            if AppSettings.hasDetectedCodexInstall {
+                return "Codex is installed, but Lil-Lenny could not confirm a current login from Settings. If Codex is already logged in, reopening the app should refresh detection."
+            }
             return (AppSettings.openAIAPIKey ?? openAIAPIKey).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "Nothing else is configured yet, so add an OpenAI API key below if you want a direct API fallback."
                 : "Automatic would fall back to the OpenAI API right now."
