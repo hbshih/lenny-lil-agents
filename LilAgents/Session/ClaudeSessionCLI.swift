@@ -141,6 +141,7 @@ extension ClaudeSession {
 
         var args = [
             "exec",
+            "--json",
             "--skip-git-repo-check",
             "-s",
             "read-only",
@@ -177,7 +178,35 @@ extension ClaudeSession {
             executablePath: executablePath,
             arguments: args,
             environment: runtimeEnvironment,
-            workingDirectory: preferredWorkingDirectoryURL()
+            workingDirectory: preferredWorkingDirectoryURL(),
+            onLineReceived: { [weak self] line in
+                guard let self else { return }
+                SessionDebugLogger.trace("codex-transport", line)
+
+                if let data = line.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let event = self.codexCLIStreamEvent(from: json) {
+                    let experts = self.expertsFromTransport(
+                        payload: json,
+                        textCandidates: [event.summary, line]
+                    )
+                    self.onToolUse?(event.title, ["summary": event.summary, "experts": experts])
+                    return
+                }
+
+                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                if self.shouldIgnoreCodexTransportLine(trimmed) {
+                    return
+                }
+
+                let summary = String(trimmed.prefix(80))
+                let experts = self.expertsFromTransport(
+                    payload: ["message": trimmed],
+                    textCandidates: [trimmed, summary]
+                )
+                self.onToolUse?("Calling Model", ["summary": summary, "experts": experts])
+            }
         ) { [weak self] status, stdout, stderr in
             guard let self else { return }
             defer { try? FileManager.default.removeItem(at: outputURL) }
@@ -203,6 +232,13 @@ extension ClaudeSession {
 
             if status == 0, let outputText, !outputText.isEmpty {
                 self.finishCLIResponse(outputText, conversationKey: conversationKey)
+                return
+            }
+
+            if status == 0,
+               let streamedOutput = self.extractCodexCLIResult(from: stdout),
+               !streamedOutput.isEmpty {
+                self.finishCLIResponse(streamedOutput, conversationKey: conversationKey)
                 return
             }
 

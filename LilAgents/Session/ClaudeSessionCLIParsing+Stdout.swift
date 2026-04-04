@@ -1,6 +1,35 @@
 import Foundation
 
 extension ClaudeSession {
+    func extractCodexCLIResult(from stdout: String) -> String? {
+        var assistantFallback: String?
+        let lines = stdout.components(separatedBy: .newlines)
+
+        for line in lines.reversed() {
+            guard !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  let data = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { continue }
+
+            if let item = codexItemPayload(from: json),
+               let itemType = (item["type"] as? String)?.lowercased(),
+               (itemType.contains("message") || itemType.contains("assistant")),
+               let extracted = extractTextPayload(from: item),
+               !extracted.isEmpty {
+                return extracted
+            }
+
+            if assistantFallback == nil,
+               let extracted = extractTextPayload(from: json),
+               !extracted.isEmpty,
+               !extracted.contains("\"type\":\"turn.") {
+                assistantFallback = extracted
+            }
+        }
+
+        return assistantFallback
+    }
+
     func extractClaudeCLIResult(from stdout: String) -> String? {
         var assistantFallback: String?
         let lines = stdout.components(separatedBy: .newlines)
@@ -60,6 +89,52 @@ extension ClaudeSession {
         return nil
     }
 
+    func codexCLIStreamEvent(from json: [String: Any]) -> (title: String, summary: String)? {
+        let eventType = (json["type"] as? String ?? "").lowercased()
+
+        switch eventType {
+        case "thread.started", "turn.started":
+            return ("Planning", "Starting the background work")
+        case "turn.completed":
+            return ("Writing", "Writing the answer")
+        case "error":
+            if let text = extractTextPayload(from: json), !text.isEmpty {
+                return ("Tool Result", text)
+            }
+            return ("Tool Result", "Something went wrong.")
+        default:
+            break
+        }
+
+        if let item = codexItemPayload(from: json),
+           let display = codexCLIStreamEvent(fromItem: item) {
+            return display
+        }
+
+        if let text = extractTextPayload(from: json), !text.isEmpty {
+            return ("Calling Model", summarizedModelNarration(text))
+        }
+
+        return nil
+    }
+
+    func shouldIgnoreCodexTransportLine(_ line: String) -> Bool {
+        let lowered = line.lowercased()
+        if lowered.hasPrefix("warning: proceeding, even though we could not update path") {
+            return true
+        }
+        if lowered.hasPrefix("reading additional input from stdin") {
+            return true
+        }
+        if lowered.hasPrefix("thread '") || lowered.contains("panicked at ") {
+            return true
+        }
+        if lowered.contains("attempted to create a null object") || lowered.contains("could not create otel exporter") {
+            return true
+        }
+        return false
+    }
+
     private func claudeCLIStreamEvent(fromMessage message: [String: Any]) -> (title: String, summary: String)? {
         let text = extractTextPayload(from: message)
         let type = ((message["type"] as? String) ?? "").lowercased()
@@ -90,6 +165,87 @@ extension ClaudeSession {
             return (title, summarizedModelNarration(text))
         }
 
+        return nil
+    }
+
+    private func codexCLIStreamEvent(fromItem item: [String: Any]) -> (title: String, summary: String)? {
+        let itemType = ((item["type"] as? String)
+            ?? (item["kind"] as? String)
+            ?? (item["item_type"] as? String)
+            ?? "").lowercased()
+
+        if itemType.contains("mcp") || itemType.contains("tool") {
+            let toolName = (item["tool_name"] as? String)
+                ?? (item["name"] as? String)
+                ?? ((item["tool"] as? [String: Any])?["name"] as? String)
+                ?? "tool"
+            let arguments = (item["arguments"] as? [String: Any])
+                ?? (item["input"] as? [String: Any])
+                ?? ((item["tool"] as? [String: Any])?["arguments"] as? [String: Any])
+                ?? [:]
+
+            let normalizedTool = normalizedTransportToolName(toolName)
+            if Constants.lennyAllowedTools.contains(normalizedTool) {
+                return processDisplay(for: normalizedTool, arguments: arguments)
+            }
+
+            return claudeCLIToolDisplay(for: toolName, arguments: arguments, fallbackText: extractTextPayload(from: item))
+        }
+
+        if itemType.contains("web") && itemType.contains("search") {
+            return ("Web Search", "Searching the web")
+        }
+
+        if itemType.contains("reasoning") || itemType.contains("thought") {
+            if let text = extractTextPayload(from: item), !text.isEmpty {
+                return ("Reasoning", summarizedModelNarration(text))
+            }
+            return ("Reasoning", "Thinking through the answer")
+        }
+
+        if itemType.contains("plan") {
+            if let text = extractTextPayload(from: item), !text.isEmpty {
+                return ("Planning", summarizedModelNarration(text))
+            }
+            return ("Planning", "Planning the next step")
+        }
+
+        if itemType.contains("command") || itemType.contains("shell") || itemType.contains("exec") {
+            if let command = (item["command"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !command.isEmpty {
+                return ("Bash", "Trying \(String(command.prefix(80)))")
+            }
+            return ("Bash", "Trying a local command")
+        }
+
+        if itemType.contains("message") || itemType.contains("assistant") || itemType.contains("output") {
+            if let text = extractTextPayload(from: item), !text.isEmpty {
+                return ("Calling Model", summarizedModelNarration(text))
+            }
+        }
+
+        if let text = extractTextPayload(from: item), !text.isEmpty {
+            return ("Calling Model", summarizedModelNarration(text))
+        }
+
+        return nil
+    }
+
+    private func codexItemPayload(from json: [String: Any]) -> [String: Any]? {
+        if let item = json["item"] as? [String: Any] {
+            return item
+        }
+        if let data = json["data"] as? [String: Any] {
+            if let item = data["item"] as? [String: Any] {
+                return item
+            }
+            return data
+        }
+        if let payload = json["payload"] as? [String: Any] {
+            if let item = payload["item"] as? [String: Any] {
+                return item
+            }
+            return payload
+        }
         return nil
     }
 
