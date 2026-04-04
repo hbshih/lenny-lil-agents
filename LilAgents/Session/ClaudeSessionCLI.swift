@@ -75,6 +75,9 @@ extension ClaudeSession {
             onLineReceived: { [weak self] line in
                 guard let self else { return }
                 SessionDebugLogger.trace("claude-transport", line)
+                if self.handleApprovalPromptLine(line) {
+                    return
+                }
                 if let data = line.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let event = self.claudeCLIStreamEvent(from: json) {
@@ -140,6 +143,8 @@ extension ClaudeSession {
         }
 
         var args = [
+            "-a",
+            "never",
             "exec",
             "--json",
             "--skip-git-repo-check",
@@ -189,10 +194,12 @@ extension ClaudeSession {
             arguments: args,
             environment: runtimeEnvironment,
             workingDirectory: preferredWorkingDirectoryURL(),
-            stdinApprovalCount: useOfficialMCP ? 20 : 0,
             onLineReceived: { [weak self] line in
                 guard let self else { return }
                 SessionDebugLogger.trace("codex-transport", line)
+                if self.handleApprovalPromptLine(line) {
+                    return
+                }
 
                 if let data = line.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

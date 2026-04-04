@@ -210,3 +210,123 @@ class TranscriptStatusView: NSView {
         }
     }
 }
+
+class TranscriptApprovalView: NSView {
+    var onChoice: ((ClaudeSession.ApprovalChoice) -> Void)?
+
+    private let theme: PopoverTheme
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let detailLabel = NSTextField(labelWithString: "")
+    private let buttonRow = NSStackView()
+
+    init(theme: PopoverTheme, request: ClaudeSession.ApprovalRequest) {
+        self.theme = theme
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        setupViews()
+        update(request: request)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setupViews() {
+        wantsLayer = true
+        layer?.backgroundColor = theme.inputBg.cgColor
+        layer?.cornerRadius = 12
+        layer?.borderWidth = 1
+        layer?.borderColor = theme.separatorColor.withAlphaComponent(0.35).cgColor
+
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+
+        titleLabel.font = NSFont.systemFont(ofSize: 12.5, weight: .semibold)
+        titleLabel.textColor = theme.textPrimary
+        titleLabel.maximumNumberOfLines = 1
+        stack.addArrangedSubview(titleLabel)
+        titleLabel.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+
+        detailLabel.font = NSFont.systemFont(ofSize: 11, weight: .regular)
+        detailLabel.textColor = theme.textDim
+        detailLabel.maximumNumberOfLines = 2
+        stack.addArrangedSubview(detailLabel)
+        detailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+
+        buttonRow.orientation = .horizontal
+        buttonRow.alignment = .centerY
+        buttonRow.spacing = 6
+        buttonRow.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(buttonRow)
+
+        buttonRow.addArrangedSubview(makePrimaryButton(title: "Allow", choice: .allow))
+        buttonRow.addArrangedSubview(makeSecondaryButton(title: "This Session", choice: .allowForSession))
+        buttonRow.addArrangedSubview(makeSecondaryButton(title: "Always", choice: .alwaysAllow))
+        buttonRow.addArrangedSubview(makeSecondaryButton(title: "Cancel", choice: .cancel))
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10)
+        ])
+    }
+
+    func update(request: ClaudeSession.ApprovalRequest) {
+        titleLabel.stringValue = "Allow \(request.serverName).\(request.toolName)?"
+        detailLabel.stringValue = request.details.isEmpty
+            ? "Codex needs approval to use this MCP tool."
+            : request.details.joined(separator: "  ")
+    }
+
+    private func makePrimaryButton(title: String, choice: ClaudeSession.ApprovalChoice) -> HoverButton {
+        let button = HoverButton(title: "", target: self, action: #selector(buttonTapped(_:)))
+        button.identifier = NSUserInterfaceItemIdentifier(choice.rawValue)
+        button.isBordered = false
+        button.wantsLayer = true
+        button.normalBg = theme.accentColor.cgColor
+        button.hoverBg = theme.accentColor.withAlphaComponent(0.82).cgColor
+        button.layer?.backgroundColor = button.normalBg
+        button.layer?.cornerRadius = 10
+        button.horizontalContentPadding = 12
+        button.verticalContentPadding = 5
+        button.attributedTitle = NSAttributedString(string: title, attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+            .foregroundColor: NSColor.white
+        ])
+        button.contentTintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        return button
+    }
+
+    private func makeSecondaryButton(title: String, choice: ClaudeSession.ApprovalChoice) -> HoverButton {
+        let button = HoverButton(title: "", target: self, action: #selector(buttonTapped(_:)))
+        button.identifier = NSUserInterfaceItemIdentifier(choice.rawValue)
+        button.isBordered = false
+        button.wantsLayer = true
+        button.normalBg = theme.bubbleBg.cgColor
+        button.hoverBg = theme.accentColor.withAlphaComponent(0.08).cgColor
+        button.layer?.backgroundColor = button.normalBg
+        button.layer?.cornerRadius = 10
+        button.layer?.borderWidth = 1
+        button.layer?.borderColor = theme.separatorColor.withAlphaComponent(0.35).cgColor
+        button.horizontalContentPadding = 11
+        button.verticalContentPadding = 5
+        button.attributedTitle = NSAttributedString(string: title, attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: theme.textPrimary
+        ])
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        return button
+    }
+
+    @objc private func buttonTapped(_ sender: NSButton) {
+        guard let rawValue = sender.identifier?.rawValue,
+              let choice = ClaudeSession.ApprovalChoice(rawValue: rawValue) else { return }
+        onChoice?(choice)
+    }
+}

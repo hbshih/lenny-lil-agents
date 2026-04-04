@@ -16,14 +16,22 @@ extension ClaudeSession {
         if itemType.contains("mcp") || itemType.contains("tool") {
             let toolName = (item["tool_name"] as? String)
                 ?? (item["name"] as? String)
+                ?? (item["tool"] as? String)
                 ?? ((item["tool"] as? [String: Any])?["name"] as? String)
                 ?? "tool"
             let arguments = (item["arguments"] as? [String: Any])
                 ?? (item["input"] as? [String: Any])
                 ?? ((item["tool"] as? [String: Any])?["arguments"] as? [String: Any])
                 ?? [:]
+            let status = (item["status"] as? String)?.lowercased()
+            let errorMessage = ((item["error"] as? [String: Any])?["message"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
 
             let normalizedTool = normalizedTransportToolName(toolName)
+            if status == "failed", let errorMessage, !errorMessage.isEmpty {
+                return ("Tool Result", toolFailureStatus(for: normalizedTool, errorMessage: errorMessage))
+            }
+
             if Constants.lennyAllowedTools.contains(normalizedTool) {
                 return processDisplay(for: normalizedTool, arguments: arguments)
             }
@@ -238,5 +246,26 @@ extension ClaudeSession {
         }
 
         return contentText
+    }
+
+    private func toolFailureStatus(for toolName: String, errorMessage: String) -> String {
+        let lowered = errorMessage.lowercased()
+
+        if lowered.contains("user cancelled mcp tool call") {
+            if Constants.lennyAllowedTools.contains(toolName) {
+                return "The archive lookup was cancelled before it finished"
+            }
+            return "That tool call was cancelled before it finished"
+        }
+
+        if lowered.contains("environment variable") && lowered.contains(Constants.lennyMCPAuthEnvVar.lowercased()) {
+            return "The archive token was not available to the MCP server"
+        }
+
+        if lowered.contains("startup failed") {
+            return "The archive connection failed to start"
+        }
+
+        return errorMessage
     }
 }

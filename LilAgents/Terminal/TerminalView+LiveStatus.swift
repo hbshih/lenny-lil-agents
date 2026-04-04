@@ -122,6 +122,7 @@ extension TerminalView {
 
     func clearLiveStatus() {
         clearTranscriptLiveStatus()
+        clearTranscriptApproval()
         composerStatusLabel.stringValue = "Generating..."
         composerStatusLabel.isHidden = true
         inputField.isHidden = false
@@ -137,6 +138,15 @@ extension TerminalView {
         sendButton.layer?.backgroundColor = sendButton.normalBg
         sendButton.contentTintColor = .white
         refreshComposerContentLayout(showingStatus: false)
+    }
+
+    func setApprovalRequest(_ request: ClaudeSession.ApprovalRequest) {
+        renderTranscriptApproval(request)
+        refreshComposerContentLayout(showingStatus: true)
+    }
+
+    func clearApprovalRequest() {
+        clearTranscriptApproval()
     }
 
     func normalizeExpertSuggestionID(_ name: String) -> String {

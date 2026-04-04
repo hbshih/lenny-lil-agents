@@ -2,6 +2,10 @@ import AppKit
 
 extension WalkerCharacter {
     func wireSession(_ session: ClaudeSession) {
+        terminalView?.onApprovalResponse = { [weak session] choice in
+            session?.submitApprovalChoice(choice)
+        }
+
         session.onSessionReady = { [weak self] in
             guard let self, let terminalView = self.terminalView else { return }
             terminalView.requiresInitialConnectionSetup = false
@@ -112,6 +116,7 @@ extension WalkerCharacter {
         session.onProcessExit = { [weak self] in
             self?.stopLiveStatusFallback()
             self?.terminalView?.endStreaming()
+            self?.terminalView?.clearLiveStatus()
             self?.terminalView?.appendError("Archive session ended.")
         }
 
@@ -120,6 +125,19 @@ extension WalkerCharacter {
             self.terminalView?.deferredExpertSuggestions = experts
             let names = experts.map(\.name).joined(separator: ", ")
             SessionDebugLogger.log("ui", "onExpertsUpdated received \(experts.count) expert(s): \(names)")
+        }
+
+        session.onApprovalRequested = { [weak self] request in
+            guard let self else { return }
+            self.noteLiveStatusEvent()
+            self.setCurrentActivityStatus("Waiting for approval")
+            self.terminalView?.setLiveStatus("Waiting for approval", isBusy: true, isError: false, experts: self.claudeSession?.livePresenceExperts ?? [])
+            self.terminalView?.setApprovalRequest(request)
+            self.updateExpertNameTag()
+        }
+
+        session.onApprovalCleared = { [weak self] in
+            self?.terminalView?.clearApprovalRequest()
         }
     }
 

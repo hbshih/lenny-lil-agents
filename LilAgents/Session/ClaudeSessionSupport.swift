@@ -8,12 +8,13 @@ extension ClaudeSession {
         arguments: [String],
         environment: [String: String],
         workingDirectory: URL?,
-        stdinApprovalCount: Int = 0,
+        wantsInteractiveInput: Bool = false,
         onLineReceived: ((String) -> Void)? = nil,
         completion: @escaping (Int32, String, String) -> Void
     ) {
         let process = Process()
         currentProcess = process
+        currentProcessStdin = nil
         process.executableURL = URL(fileURLWithPath: executablePath)
         process.arguments = arguments
         process.environment = environment
@@ -25,14 +26,10 @@ extension ClaudeSession {
         process.standardOutput = stdout
         process.standardError = stderr
 
-        // Pre-fill stdin with approval responses so permission prompts from
-        // non-interactive CLIs (e.g. Codex MCP tool approval) get auto-answered.
-        if stdinApprovalCount > 0 {
+        if wantsInteractiveInput {
             let stdin = Pipe()
             process.standardInput = stdin
-            let responses = Data(Array(repeating: "1\n", count: stdinApprovalCount).joined().utf8)
-            stdin.fileHandleForWriting.write(responses)
-            stdin.fileHandleForWriting.closeFile()
+            currentProcessStdin = stdin.fileHandleForWriting
         }
 
         SessionDebugLogger.log(
@@ -102,7 +99,9 @@ extension ClaudeSession {
             DispatchQueue.main.async { [weak self] in
                 if self?.currentProcess === process {
                     self?.currentProcess = nil
+                    self?.currentProcessStdin = nil
                 }
+                self?.clearPendingApprovalRequest()
             }
             stdout.fileHandleForReading.readabilityHandler = nil
             stderr.fileHandleForReading.readabilityHandler = nil
@@ -132,10 +131,77 @@ extension ClaudeSession {
             try process.run()
         } catch {
             currentProcess = nil
+            currentProcessStdin = nil
             DispatchQueue.main.async {
+                self.clearPendingApprovalRequest()
                 completion(-1, "", error.localizedDescription)
             }
         }
+    }
+
+    func handleApprovalPromptLine(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        let prefix = "Allow the "
+        let infix = " MCP server to run tool \""
+        let suffix = "\"?"
+
+        if trimmed.hasPrefix(prefix),
+           let toolStart = trimmed.range(of: infix),
+           let toolEnd = trimmed.range(of: suffix, range: toolStart.upperBound..<trimmed.endIndex) {
+            let serverStart = trimmed.index(trimmed.startIndex, offsetBy: prefix.count)
+            let serverName = String(trimmed[serverStart..<toolStart.lowerBound])
+            let toolName = String(trimmed[toolStart.upperBound..<toolEnd.lowerBound])
+            pendingApprovalRequest = ApprovalRequest(serverName: serverName, toolName: toolName)
+            if let pendingApprovalRequest {
+                onApprovalRequested?(pendingApprovalRequest)
+            }
+            SessionDebugLogger.log("approval", "prompted for \(serverName).\(toolName)")
+            return true
+        }
+
+        guard var request = pendingApprovalRequest else { return false }
+
+        if trimmed.hasPrefix("Field ") ||
+            trimmed.hasPrefix("› ") ||
+            trimmed.hasPrefix("1. Allow") ||
+            trimmed.hasPrefix("2. Allow for this session") ||
+            trimmed.hasPrefix("3. Always allow") ||
+            trimmed.hasPrefix("4. Cancel") ||
+            trimmed.lowercased().contains("enter to submit") {
+            return true
+        }
+
+        if trimmed.contains(":"),
+           let colonIndex = trimmed.firstIndex(of: ":"),
+           colonIndex != trimmed.startIndex {
+            let key = trimmed[..<colonIndex]
+            if key.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }) {
+                if !request.details.contains(trimmed) {
+                    request.details.append(trimmed)
+                    request.details = Array(request.details.prefix(2))
+                    pendingApprovalRequest = request
+                    onApprovalRequested?(request)
+                }
+                return true
+            }
+        }
+
+        return false
+    }
+
+    func submitApprovalChoice(_ choice: ApprovalChoice) {
+        guard let currentProcessStdin else { return }
+        let payload = Data((choice.rawValue + "\n").utf8)
+        currentProcessStdin.write(payload)
+        SessionDebugLogger.log("approval", "submitted choice \(choice.rawValue)")
+        clearPendingApprovalRequest()
+    }
+
+    func clearPendingApprovalRequest() {
+        pendingApprovalRequest = nil
+        onApprovalCleared?()
     }
 
     func imageDataURL(for url: URL) -> String? {

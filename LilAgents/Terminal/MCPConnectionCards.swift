@@ -439,11 +439,20 @@ class OfficialMCPConnectCardView: NSView {
             detectionLabel.stringValue = "Paste the auth key from lennysdata.com first."
             return
         }
-        AppSettings.officialLennyMCPToken = trimmed
-        AppSettings.archiveAccessMode = .officialMCP
-        detectionLabel.textColor = theme.accentColor
-        detectionLabel.isHidden = false
-        detectionLabel.stringValue = "Connected. The key is saved on this Mac."
-        onSave?()
+        do {
+            let result = try OfficialMCPInstaller.install(token: trimmed)
+            detectionLabel.textColor = theme.accentColor
+            detectionLabel.isHidden = false
+            if result.storedTokenOnly {
+                detectionLabel.stringValue = "Saved locally. Lil-Lenny will use it automatically."
+            } else {
+                detectionLabel.stringValue = "Connected. The key is saved on this Mac and CLI access was configured."
+            }
+            onSave?()
+        } catch {
+            detectionLabel.textColor = theme.errorColor
+            detectionLabel.isHidden = false
+            detectionLabel.stringValue = error.localizedDescription
+        }
     }
 }

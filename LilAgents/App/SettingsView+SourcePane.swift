@@ -44,14 +44,27 @@ extension SettingsView {
                                 SecureField("Paste auth key", text: $officialToken)
                                     .textFieldStyle(.roundedBorder)
 
+                                Button("Save and connect") {
+                                    saveOfficialArchiveToken()
+                                }
+                                .buttonStyle(.borderedProminent)
+
                                 Button("Open lennysdata.com") {
                                     NSWorkspace.shared.open(officialArchiveURL)
                                 }
                                 .buttonStyle(.bordered)
                             }
 
-                            Text("Lil-Lenny stores this auth key locally on this Mac and passes it directly to Claude Code or Codex when you send a message. Nothing is written to your CLI config files.")
+                            Text("Lil-Lenny stores this auth key locally on this Mac and, when you save it here, configures any detected Codex or Claude Code install for the official archive too.")
                                 .settingsCaption()
+                        }
+
+                        if let sourcePaneStatusMessage, !sourcePaneStatusMessage.isEmpty {
+                            SettingsInfoRow(
+                                icon: "checkmark.circle.fill",
+                                iconColor: .accentColor,
+                                text: sourcePaneStatusMessage
+                            )
                         }
                     }
                 }
@@ -112,5 +125,55 @@ extension SettingsView {
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
+    }
+
+    private func saveOfficialArchiveToken() {
+        let trimmed = officialToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            sourcePaneErrorMessage = "Paste the auth key from lennysdata.com first."
+            return
+        }
+
+        do {
+            let result = try OfficialMCPInstaller.install(token: trimmed)
+            officialToken = trimmed
+
+            if result.storedTokenOnly {
+                sourcePaneStatusMessage = "Saved locally. Lil-Lenny will use it automatically, and detected CLI tools can be configured later."
+            } else {
+                let updated = result.updatedTargets.map(\.label)
+                let preserved = result.preservedTargets.map(\.label)
+                let updatedText = updated.isEmpty ? nil : sourcePaneNaturalList(updated)
+                let preservedText = preserved.isEmpty ? nil : sourcePaneNaturalList(preserved)
+
+                if let updatedText, let preservedText {
+                    sourcePaneStatusMessage = "Saved locally. Configured \(updatedText) and kept the existing setup in \(preservedText)."
+                } else if let updatedText {
+                    sourcePaneStatusMessage = "Saved locally and configured \(updatedText)."
+                } else if let preservedText {
+                    sourcePaneStatusMessage = "Saved locally. Existing setup in \(preservedText) was kept."
+                } else {
+                    sourcePaneStatusMessage = "Saved locally and connected."
+                }
+            }
+
+            sourcePaneErrorMessage = nil
+            AppSettings.refreshDetectionState()
+        } catch {
+            sourcePaneErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func sourcePaneNaturalList(_ items: [String]) -> String {
+        switch items.count {
+        case 0:
+            return ""
+        case 1:
+            return items[0]
+        case 2:
+            return "\(items[0]) and \(items[1])"
+        default:
+            return "\(items.dropLast().joined(separator: ", ")), and \(items.last ?? "")"
+        }
     }
 }

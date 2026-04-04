@@ -18,6 +18,19 @@ final class ClaudeSession {
         case openAIResponsesAPI
     }
 
+    struct ApprovalRequest: Equatable {
+        let serverName: String
+        let toolName: String
+        var details: [String] = []
+    }
+
+    enum ApprovalChoice: String {
+        case allow = "1"
+        case allowForSession = "2"
+        case alwaysAllow = "3"
+        case cancel = "4"
+    }
+
     var isRunning = false
     var isBusy = false
     var conversations: [String: ConversationState] = [:]
@@ -29,8 +42,10 @@ final class ClaudeSession {
     var liveToolCallsByID: [String: (name: String, arguments: [String: Any])] = [:]
     var assistantExplicitlyRequestedExperts = false
     var currentProcess: Process?
+    var currentProcessStdin: FileHandle?
     var currentDataTask: URLSessionDataTask?
     var isCancellingTurn = false
+    var pendingApprovalRequest: ApprovalRequest?
 
     var onText: ((String) -> Void)?
     var onError: ((String) -> Void)?
@@ -41,6 +56,8 @@ final class ClaudeSession {
     var onTurnComplete: (() -> Void)?
     var onProcessExit: (() -> Void)?
     var onExpertsUpdated: (([ResponderExpert]) -> Void)?
+    var onApprovalRequested: ((ApprovalRequest) -> Void)?
+    var onApprovalCleared: (() -> Void)?
 
     static var shellEnvironment: [String: String]?
     static var shellEnvironmentResolvedAt: Date?

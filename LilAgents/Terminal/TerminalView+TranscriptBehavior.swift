@@ -15,6 +15,7 @@ extension TerminalView {
         }
         transcriptSuggestionView = nil
         transcriptLiveStatusView = nil
+        transcriptApprovalView = nil
     }
 
     private func isTranscriptNearBottom(threshold: CGFloat = 48) -> Bool {
@@ -336,6 +337,35 @@ extension TerminalView {
             transcriptStack.removeArrangedSubview(view)
             view.removeFromSuperview()
             transcriptLiveStatusView = nil
+        }
+    }
+
+    func renderTranscriptApproval(_ request: ClaudeSession.ApprovalRequest) {
+        let shouldStickToBottom = isTranscriptNearBottom(threshold: 72)
+        if let approvalView = transcriptApprovalView as? TranscriptApprovalView {
+            approvalView.update(request: request)
+        } else {
+            let approvalView = TranscriptApprovalView(theme: theme, request: request)
+            approvalView.onChoice = { [weak self] choice in
+                self?.onApprovalResponse?(choice)
+            }
+            transcriptStack.addArrangedSubview(approvalView)
+            approvalView.widthAnchor.constraint(equalTo: transcriptStack.widthAnchor).isActive = true
+            transcriptApprovalView = approvalView
+        }
+
+        if shouldStickToBottom {
+            scrollToBottom()
+        } else if let approvalView = transcriptApprovalView {
+            scrollTranscriptViewIntoView(approvalView, topPadding: 12, bottomPadding: 20, preferBottomEdge: true)
+        }
+    }
+
+    func clearTranscriptApproval() {
+        if let view = transcriptApprovalView {
+            transcriptStack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+            transcriptApprovalView = nil
         }
     }
 

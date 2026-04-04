@@ -52,6 +52,8 @@ struct SettingsView: View {
     @State var selectedPane: SettingsPane = .source
     @State var showResetConfirmation = false
     @State var resetErrorMessage: String?
+    @State var sourcePaneStatusMessage: String?
+    @State var sourcePaneErrorMessage: String?
 
     let officialArchiveURL = URL(string: "https://www.lennysdata.com")!
 
@@ -114,6 +116,14 @@ struct SettingsView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(resetErrorMessage ?? "")
+        }
+        .alert("Connection Failed", isPresented: Binding(
+            get: { sourcePaneErrorMessage != nil },
+            set: { if !$0 { sourcePaneErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(sourcePaneErrorMessage ?? "")
         }
     }
 

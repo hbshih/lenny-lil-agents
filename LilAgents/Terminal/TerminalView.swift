@@ -30,6 +30,7 @@ class TerminalView: NSView {
     var onTogglePinned: (() -> Void)?
     var onCloseRequested: (() -> Void)?
     var onRefreshSetupState: (() -> Void)?
+    var onApprovalResponse: ((ClaudeSession.ApprovalChoice) -> Void)?
 
     var characterColor: NSColor?
     var themeOverride: PopoverTheme?
@@ -45,6 +46,7 @@ class TerminalView: NSView {
     var isShowingInitialWelcomeState = false
     var transcriptSuggestionView: NSView?
     var transcriptLiveStatusView: NSView?
+    var transcriptApprovalView: NSView?
     var renderedConversationKey: String?
     var expertSuggestionsCollapsed = false
     var liveStatusAvatarTimer: Timer?

@@ -276,54 +276,6 @@ extension ClaudeSession {
         return URL(fileURLWithPath: rawPath).lastPathComponent
     }
 
-    private func permissionDeniedStatus(from contentText: String) -> String? {
-        let prefix = "Error: Permission to use "
-        guard contentText.hasPrefix(prefix) else { return nil }
-        let toolName = contentText
-            .replacingOccurrences(of: prefix, with: "")
-            .components(separatedBy: " has been denied")
-            .first?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if let toolName, !toolName.isEmpty {
-            return "\(toolName) access isn't available here, trying another route"
-        }
-        return "That route isn't available here, trying another approach"
-    }
-
-    private func decodedToolResultPayload(from content: Any?) -> Any? {
-        guard let contentText = extractTextPayload(from: content), !contentText.isEmpty else {
-            return content
-        }
-
-        if let data = contentText.data(using: .utf8),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            if let resultText = json["result"] as? String,
-               let resultData = resultText.data(using: .utf8),
-               let nested = try? JSONSerialization.jsonObject(with: resultData) {
-                return nested
-            }
-            return json
-        }
-
-        return contentText
-    }
-
-    private func excerptStatus(from output: Any?) -> String? {
-        let experts = expertsFromMCPPayloads(arguments: [:], output: output).map(\.name)
-        if let first = experts.first {
-            return "Reviewing \(first)'s advice"
-        }
-
-        guard let payload = output as? [String: Any] else { return nil }
-        if let title = payload["title"] as? String, !title.isEmpty {
-            return "Reviewing \(title)"
-        }
-        if let filename = payload["filename"] as? String, !filename.isEmpty {
-            return "Reviewing \(readableSourceName(from: filename))"
-        }
-        return nil
-    }
-
     private func toolFailureStatus(for toolName: String, errorMessage: String) -> String {
         let lowered = errorMessage.lowercased()
 
